@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BEM Studio — Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg:#080a0f; --surface:#0f1219; --panel:#141820;
+    --border:#1e2535; --border2:#2a3348;
+    --accent:#3de8b0; --accent-dim:rgba(61,232,176,0.10);
+    --red:#f04860; --text:#b8c8e0; --text-bright:#e8f0ff;
+    --dim:#4a5570; --dimmer:#2a3040;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+
+  body {
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Syne',sans-serif;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+
+  /* ── AUTH GATE (shown while checking / if not authed) ── */
+  #auth-gate {
+    position:fixed; inset:0; z-index:999;
+    background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:16px;
+  }
+  #auth-gate.hidden { display:none; }
+
+  .gate-logo {
+    font-family:'Space Mono',monospace; font-size:13px;
+    font-weight:700; letter-spacing:0.22em; color:var(--accent);
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  .gate-spinner {
+    width:28px; height:28px;
+    border:2px solid var(--border2);
+    border-top-color:var(--accent);
+    border-radius:50%;
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .gate-text {
+    font-family:'Space Mono',monospace; font-size:9px;
+    letter-spacing:0.15em; color:var(--dim); text-transform:uppercase;
+  }
+
+  /* ── TOP BAR (shown once authenticated) ── */
+  #app-bar {
+    height:36px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    display:none; /* shown after auth */
+    align-items:center;
+    padding:0 16px;
+    gap:12px;
+    flex-shrink:0;
+    z-index:10;
+  }
+  #app-bar.visible { display:flex; }
+
+  .appbar-logo {
+    font-family:'Space Mono',monospace; font-size:10px;
+    font-weight:700; letter-spacing:0.18em; color:var(--accent);
+    text-transform:uppercase; text-decoration:none;
+    display:flex; align-items:center; gap:8px;
+  }
+  .appbar-sep { width:1px; height:18px; background:var(--border2); }
+  .appbar-user {
+    font-family:'Space Mono',monospace; font-size:9px;
+    color:var(--dim); letter-spacing:0.08em;
+  }
+  .appbar-user span { color:var(--text); }
+  .appbar-signout {
+    margin-left:auto;
+    font-family:'Space Mono',monospace; font-size:9px;
+    font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--dim); background:transparent;
+    border:1px solid var(--border2); border-radius:4px;
+    padding:4px 10px; cursor:pointer;
+    transition:color 0.15s, border-color 0.15s;
+  }
+  .appbar-signout:hover { color:var(--red); border-color:var(--red); }
+
+  /* ── SIMULATOR IFRAME ── */
+  #sim-frame {
+    display:none; /* shown after auth */
+    flex:1;
+    width:100%;
+    border:none;
+  }
+  #sim-frame.visible { display:block; }
+</style>
+</head>
+<body>
+
+<!-- AUTH GATE — covers the screen until session is verified -->
+<div id="auth-gate">
+  <div class="gate-logo">⬡ BEM Studio</div>
+  <div class="gate-spinner"></div>
+  <div class="gate-text">Verifying session…</div>
+</div>
+
+<!-- APP BAR — only visible to authenticated users -->
+<div id="app-bar">
+  <a href="index.html" class="appbar-logo">⬡ BEM Studio</a>
+  <div class="appbar-sep"></div>
+  <div class="appbar-user">Signed in as <span id="user-label">—</span></div>
+  <button class="appbar-signout" onclick="signOut()">Sign out</button>
+</div>
+
+<!-- SIMULATOR IFRAME — the actual tool, only injected after auth -->
+<iframe id="sim-frame" title="BEM Studio Indoor CFD Simulator"
+  sandbox="allow-scripts allow-same-origin"
+  referrerpolicy="no-referrer"></iframe>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  SUPABASE CONFIG — same values as signup.html / login.html
+// ══════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_ANON = 'YOUR_ANON_PUBLIC_KEY';
+// ══════════════════════════════════════════════════════
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+async function init() {
+  // Check current session
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    // No valid session — redirect to login immediately
+    window.location.href = 'login.html?next=simulator.html';
+    return;
+  }
+
+  // ── AUTHENTICATED ─────────────────────────────────
+  const user     = session.user;
+  const username = user.user_metadata?.username || user.email;
+
+  // Show the app bar with user info
+  document.getElementById('user-label').textContent = username;
+  document.getElementById('app-bar').classList.add('visible');
+
+  // NOW inject the simulator iframe src — only at this point
+  // The tool file is never loaded until we've confirmed the session
+  const frame = document.getElementById('sim-frame');
+  frame.src = 'wind_simulator_v9_6.html';
+  frame.classList.add('visible');
+
+  // Hide the auth gate
+  document.getElementById('auth-gate').classList.add('hidden');
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  window.location.href = 'login.html';
+}
+
+// Listen for auth state changes (e.g. token expiry while page is open)
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT' || !session) {
+    window.location.href = 'login.html';
+  }
+});
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BEM Studio — Create Account</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg:         #080a0f;
+    --surface:    #0f1219;
+    --panel:      #141820;
+    --border:     #1e2535;
+    --border2:    #2a3348;
+    --accent:     #3de8b0;
+    --accent-dim: rgba(61,232,176,0.10);
+    --accent-glow:rgba(61,232,176,0.22);
+    --amber:      #f0a832;
+    --red:        #f04860;
+    --text:       #b8c8e0;
+    --text-bright:#e8f0ff;
+    --dim:        #4a5570;
+    --dimmer:     #2a3040;
+  }
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 20px;
+    position:relative; overflow:hidden;
+  }
+
+  /* Grid bg */
+  body::after {
+    content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(61,232,176,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(61,232,176,0.025) 1px, transparent 1px);
+    background-size:40px 40px;
+    mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
+  }
+
+  .glow {
+    position:fixed; top:-200px; left:50%; transform:translateX(-50%);
+    width:700px; height:500px; pointer-events:none; z-index:0;
+    background:radial-gradient(ellipse, rgba(61,232,176,0.06) 0%, transparent 65%);
+  }
+
+  /* Back link */
+  .back-link {
+    position:fixed; top:20px; left:24px; z-index:10;
+    display:flex; align-items:center; gap:6px;
+    font-family:'Space Mono',monospace; font-size:9px;
+    font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--dim); text-decoration:none;
+    transition:color 0.15s;
+  }
+  .back-link:hover { color:var(--accent); }
+
+  /* Card */
+  .card {
+    position:relative; z-index:1;
+    width:100%; max-width:420px;
+    background:var(--surface);
+    border:1px solid var(--border2);
+    border-radius:10px;
+    overflow:hidden;
+    box-shadow:0 40px 80px rgba(0,0,0,0.6), 0 0 60px rgba(61,232,176,0.04);
+    animation: slideUp 0.45s cubic-bezier(.22,1,.36,1) both;
+  }
+  @keyframes slideUp {
+    from { opacity:0; transform:translateY(28px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  .card-header {
+    padding:28px 32px 0;
+    border-bottom:1px solid var(--border);
+    padding-bottom:24px;
+    background: linear-gradient(180deg, var(--panel) 0%, var(--surface) 100%);
+  }
+  .card-logo {
+    display:flex; align-items:center; gap:10px;
+    font-family:'Space Mono',monospace; font-size:13px;
+    font-weight:700; letter-spacing:0.2em; color:var(--accent);
+    text-transform:uppercase; text-decoration:none;
+    margin-bottom:20px;
+  }
+  .card-logo-icon {
+    width:26px; height:26px;
+    border:1.5px solid var(--accent);
+    border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px;
+  }
+  .card-title {
+    font-size:22px; font-weight:800;
+    color:var(--text-bright); letter-spacing:-0.02em;
+    margin-bottom:4px;
+  }
+  .card-sub {
+    font-size:12px; color:var(--dim); line-height:1.5;
+  }
+
+  .card-body { padding:28px 32px; }
+
+  /* Form */
+  .field { margin-bottom:18px; }
+  .field-label {
+    display:block; margin-bottom:7px;
+    font-family:'Space Mono',monospace; font-size:9px;
+    font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--dim);
+  }
+  .field-input {
+    width:100%; padding:11px 14px;
+    background:var(--panel); border:1px solid var(--border2);
+    border-radius:5px; color:var(--text-bright);
+    font-family:'Syne',sans-serif; font-size:14px;
+    outline:none; transition:border-color 0.15s, box-shadow 0.15s;
+  }
+  .field-input::placeholder { color:var(--dimmer); }
+  .field-input:focus {
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-dim);
+  }
+  .field-input.error { border-color:var(--red); }
+
+  .field-hint {
+    margin-top:5px;
+    font-family:'Space Mono',monospace; font-size:8px;
+    color:var(--dimmer); letter-spacing:0.05em;
+  }
+
+  /* Password strength */
+  .pw-meter {
+    margin-top:8px;
+    display:flex; gap:4px;
+  }
+  .pw-seg {
+    height:3px; flex:1; border-radius:2px;
+    background:var(--dimmer);
+    transition:background 0.2s;
+  }
+  .pw-seg.weak   { background:var(--red); }
+  .pw-seg.fair   { background:var(--amber); }
+  .pw-seg.strong { background:var(--accent); }
+
+  /* Submit btn */
+  .submit-btn {
+    width:100%; padding:13px;
+    background:var(--accent); color:var(--bg);
+    border:none; border-radius:5px; cursor:pointer;
+    font-family:'Space Mono',monospace; font-size:10px;
+    font-weight:700; letter-spacing:0.18em; text-transform:uppercase;
+    transition:box-shadow 0.2s, opacity 0.15s, transform 0.1s;
+    margin-top:6px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .submit-btn:hover:not(:disabled) {
+    box-shadow:0 0 24px var(--accent-glow);
+    transform:translateY(-1px);
+  }
+  .submit-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+  .spinner {
+    width:13px; height:13px;
+    border:2px solid rgba(8,10,15,0.4);
+    border-top-color:var(--bg);
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* Error / success banners */
+  .banner {
+    padding:11px 14px; border-radius:5px; margin-bottom:18px;
+    font-size:13px; line-height:1.5;
+    display:none;
+  }
+  .banner.error {
+    background:rgba(240,72,96,0.1); border:1px solid rgba(240,72,96,0.3);
+    color:#f79aaa; display:block;
+  }
+  .banner.success {
+    background:rgba(61,232,176,0.1); border:1px solid rgba(61,232,176,0.3);
+    color:var(--accent); display:block;
+  }
+
+  /* Divider */
+  .divider {
+    display:flex; align-items:center; gap:12px;
+    margin:20px 0; color:var(--dimmer);
+    font-family:'Space Mono',monospace; font-size:9px;
+    letter-spacing:0.1em;
+  }
+  .divider::before, .divider::after {
+    content:''; flex:1; height:1px; background:var(--border);
+  }
+
+  .login-link {
+    text-align:center;
+    font-size:12px; color:var(--dim);
+  }
+  .login-link a {
+    color:var(--accent); text-decoration:none; font-weight:600;
+  }
+  .login-link a:hover { text-decoration:underline; }
+
+  /* Success state card */
+  .success-card {
+    display:none;
+    text-align:center; padding:48px 32px;
+  }
+  .success-icon {
+    width:60px; height:60px; border-radius:50%;
+    background:var(--accent-dim); border:1px solid rgba(61,232,176,0.3);
+    display:flex; align-items:center; justify-content:center;
+    font-size:26px; margin:0 auto 24px;
+    animation:pulse 2s ease infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(61,232,176,0.3); }
+    50% { box-shadow:0 0 0 12px rgba(61,232,176,0); }
+  }
+  .success-title {
+    font-size:20px; font-weight:800; color:var(--text-bright);
+    margin-bottom:10px; letter-spacing:-0.01em;
+  }
+  .success-desc {
+    font-size:13px; color:var(--dim); line-height:1.7;
+    max-width:300px; margin:0 auto 24px;
+  }
+  .success-email-highlight {
+    font-family:'Space Mono',monospace; font-size:11px;
+    color:var(--accent); background:var(--accent-dim);
+    padding:8px 14px; border-radius:4px; display:inline-block;
+    border:1px solid rgba(61,232,176,0.2); margin-bottom:20px;
+  }
+
+  .terms-note {
+    margin-top:14px;
+    font-family:'Space Mono',monospace; font-size:8px;
+    color:var(--dimmer); text-align:center; line-height:1.6;
+    letter-spacing:0.04em;
+  }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+
+<a href="index.html" class="back-link">← Back to home</a>
+
+<div class="card" id="mainCard">
+  <div class="card-header">
+    <a href="index.html" class="card-logo">
+      <div class="card-logo-icon">⬡</div>
+      BEM Studio
+    </a>
+    <div class="card-title">Create your account</div>
+    <div class="card-sub">Access the full indoor CFD wind simulator — free.</div>
+  </div>
+
+  <div class="card-body">
+    <div class="banner" id="banner"></div>
+
+    <div class="field">
+      <label class="field-label" for="username">Username</label>
+      <input class="field-input" type="text" id="username" placeholder="e.g. john_engineer" autocomplete="username" spellcheck="false">
+      <div class="field-hint">Letters, numbers and underscores only</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="email">Email address</label>
+      <input class="field-input" type="email" id="email" placeholder="you@example.com" autocomplete="email">
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="password">Password</label>
+      <input class="field-input" type="password" id="password" placeholder="Min. 8 characters" autocomplete="new-password">
+      <div class="pw-meter">
+        <div class="pw-seg" id="pw1"></div>
+        <div class="pw-seg" id="pw2"></div>
+        <div class="pw-seg" id="pw3"></div>
+        <div class="pw-seg" id="pw4"></div>
+      </div>
+      <div class="field-hint">Use a mix of letters, numbers and symbols</div>
+    </div>
+
+    <button class="submit-btn" id="signupBtn" onclick="doSignup()">
+      Create Account
+    </button>
+
+    <div class="terms-note">
+      By creating an account you agree to our Terms of Service and Privacy Policy.
+      Your data is never sold or shared with third parties.
+    </div>
+
+    <div class="divider">or</div>
+
+    <div class="login-link">
+      Already have an account? <a href="login.html">Sign in →</a>
+    </div>
+  </div>
+
+  <!-- SUCCESS STATE (shown after signup) -->
+  <div class="success-card" id="successCard">
+    <div class="success-icon">✉️</div>
+    <div class="success-title">Check your inbox</div>
+    <div class="success-desc">We've sent an activation link to:</div>
+    <div class="success-email-highlight" id="successEmail"></div>
+    <div class="success-desc">Click the link in the email to activate your account. Once confirmed, you can sign in and access the simulator.</div>
+    <a href="login.html" style="
+      display:inline-flex; align-items:center; gap:7px;
+      font-family:'Space Mono',monospace; font-size:9px;
+      font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+      color:var(--bg); background:var(--accent);
+      text-decoration:none; padding:11px 22px; border-radius:5px;
+    ">Go to sign in →</a>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  SUPABASE CONFIG — replace with your project values
+//  Get these from: https://supabase.com/dashboard/project/<your-project>/settings/api
+// ══════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_ANON = 'YOUR_ANON_PUBLIC_KEY';
+// ══════════════════════════════════════════════════════
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// Password strength meter
+document.getElementById('password').addEventListener('input', function() {
+  const v = this.value;
+  let score = 0;
+  if (v.length >= 8)  score++;
+  if (v.length >= 12) score++;
+  if (/[0-9]/.test(v) && /[a-zA-Z]/.test(v)) score++;
+  if (/[^a-zA-Z0-9]/.test(v)) score++;
+
+  const segs = ['pw1','pw2','pw3','pw4'];
+  const cls  = ['','weak','fair','strong','strong'];
+  segs.forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.className = 'pw-seg';
+    if (i < score) el.classList.add(cls[score]);
+  });
+});
+
+function showBanner(msg, type) {
+  const b = document.getElementById('banner');
+  b.textContent = msg;
+  b.className = 'banner ' + type;
+}
+
+function validate(username, email, password) {
+  if (!username || !/^[a-zA-Z0-9_]{3,24}$/.test(username))
+    return 'Username must be 3–24 characters (letters, numbers, underscores).';
+  if (!email || !email.includes('@'))
+    return 'Please enter a valid email address.';
+  if (!password || password.length < 8)
+    return 'Password must be at least 8 characters.';
+  return null;
+}
+
+async function doSignup() {
+  const username = document.getElementById('username').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  const err = validate(username, email, password);
+  if (err) { showBanner(err, 'error'); return; }
+
+  const btn = document.getElementById('signupBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Creating account…';
+
+  // Sign up via Supabase — email confirmation is automatic
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { username },                         // stored in user_metadata
+      emailRedirectTo: window.location.origin + '/login.html',
+    }
+  });
+
+  if (error) {
+    showBanner(error.message || 'Something went wrong. Please try again.', 'error');
+    btn.disabled = false;
+    btn.innerHTML = 'Create Account';
+    return;
+  }
+
+  // Show success state
+  document.querySelector('.card-header').style.display = 'none';
+  document.querySelector('.card-body').style.display   = 'none';
+  document.getElementById('successEmail').textContent  = email;
+  document.getElementById('successCard').style.display = 'block';
+}
+
+// Allow Enter key to submit
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doSignup();
+});
+</script>
+</body>
+</html>
