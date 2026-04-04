@@ -19,7 +19,7 @@
     --amber: #f0a832;
     --red: #f04860;
     --text: #b8c8e0;
-    --dim: #4a5570;
+    --dim: #7a8ba8;
     --dimmer: #2a3040;
   }
 
@@ -1275,7 +1275,7 @@
       <div class="hdr-dropdown" id="dd-file">
         <div class="hdr-dd-item" onclick="newProject();closeMenus()"><span class="di">✦</span>New Project</div>
         <div class="hdr-dd-sep"></div>
-        <div class="hdr-dd-item" onclick="saveToCloud();closeMenus()"><span class="di">☁</span>Save to Cloud<span class="dk">Ctrl+S</span></div>
+        <div class="hdr-dd-item" onclick="saveToCloud();closeMenus()"><span class="di">☁</span>Save to Cloud + Download<span class="dk">Ctrl+S</span></div>
         <div class="hdr-dd-item" onclick="saveAsNewVersion();closeMenus()"><span class="di">🔖</span>Save as New Version</div>
         <div class="hdr-dd-item" onclick="downloadLocalJSON(collectState());closeMenus()"><span class="di">💾</span>Download Local Copy</div>
         <div class="hdr-dd-item" onclick="document.getElementById('file-load').click();closeMenus()"><span class="di">📂</span>Load from File<span class="dk">Ctrl+O</span></div>
@@ -1306,6 +1306,10 @@
         <div class="hdr-dd-toggle" onclick="toggleLayerMenu('dimensions')">
           <span class="dt-lbl">Dimensions</span>
           <div class="toggle" id="tg-dimensions" onclick="event.stopPropagation();toggleLayer('dimensions')"></div>
+        </div>
+        <div class="hdr-dd-toggle" onclick="toggleLayerMenu('grid')">
+          <span class="dt-lbl">Grid Lines</span>
+          <div class="toggle on" id="tg-grid" onclick="event.stopPropagation();toggleLayer('grid')"></div>
         </div>
         <div class="hdr-dd-sep"></div>
         <div class="hdr-dd-toggle" onclick="toggleLightMode()">
@@ -1533,8 +1537,8 @@
         <input type="range" min="0" max="100" value="5" step="0.5" oninput="onSpd(+this.value)">
       </div>
       <div class="srow">
-        <div class="slbl"><span>Particles</span><span class="sval" id="sl-parts">300</span></div>
-        <input type="range" min="50" max="3000" value="300" step="50" oninput="onParts(+this.value)">
+        <div class="slbl"><span>Particles</span><span class="sval" id="sl-parts">150</span></div>
+        <input type="range" min="50" max="3000" value="150" step="50" oninput="onParts(+this.value)">
       </div>
       <div class="srow">
         <div class="slbl"><span>Turbulence</span><span class="sval" id="sl-turb">0.3</span></div>
@@ -1585,7 +1589,12 @@
       <div class="pscale-title">Pressure Scale</div>
       <div class="pscale-bar dark" id="pscale-bar"></div>
       <div class="pscale-ticks"><span>Low−</span><span>Neg</span><span>·</span><span>Pos</span><span>High+</span></div>
-      <div class="pscale-note" id="pscale-note">Blue = suction<br>Red = compression</div>
+      <div class="pscale-note" id="pscale-note">Blue = suction · Red = compression</div>
+      <div class="pscale-title" style="margin-top:8px;">Particle Speed</div>
+      <div style="height:6px;border-radius:3px;margin-bottom:3px;background:linear-gradient(to right,rgb(26,200,95),rgb(234,179,20),rgb(240,48,72));"></div>
+      <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:7px;color:var(--dim);">
+        <span>Slow</span><span>Med</span><span>Fast</span>
+      </div>
     </div>
 
     <!-- Dimensions overlay (below pressure scale) -->
@@ -1636,7 +1645,7 @@
           <div class="adv-row">
             <span class="adv-lbl">Solver Iterations<em>more = better but slower (40–120)</em></span>
             <div class="adv-ctrl">
-              <input class="adv-inp" type="number" step="5" id="ap-iters" value="20" onchange="setAP('ITERS',+this.value,-Infinity,Infinity)">
+              <input class="adv-inp" type="number" step="5" id="ap-iters" value="5" onchange="setAP('ITERS',+this.value,-Infinity,Infinity)">
             </div>
           </div>
           <div class="adv-row">
@@ -1786,8 +1795,7 @@
     <div class="confirm-actions">
       <button class="confirm-btn" onclick="closeNewProjectConfirm()">Cancel</button>
       <button class="confirm-btn danger" onclick="newProjectNoSave()">Discard</button>
-      <button class="confirm-btn" onclick="saveToLocalStorage();newProjectNoSave()">Quick Save</button>
-      <button class="confirm-btn primary" onclick="saveToCloud();newProjectNoSave()">Save to Cloud</button>
+      <button class="confirm-btn primary" onclick="_doCloudSave(false).then(()=>newProjectNoSave())">Save to Cloud</button>
     </div>
   </div>
 </div>
@@ -1949,10 +1957,10 @@ let panX = 0;            // pan offset in screen pixels (applied to ctx transfor
 let panY = 0;
 let _panning = false;    // true while panning via middle mouse / shift+right
 const PX_PER_M = 40;     // inverse: 1m = 40px = 5 cells
-let windDeg = 0, windSpd = 5, maxParts = 300, turbulence = 0.3, tailLength = 50;
+let windDeg = 0, windSpd = 5, maxParts = 150, turbulence = 0.3, tailLength = 50;
 let simPaused = false;
 let simRunning = false, animId = null;
-let showPressure = true, showVectors = false, showParticles = true, showDimensions = false;
+let showPressure = true, showVectors = false, showParticles = true, showDimensions = false, showGrid = true;
 let lightMode = false;
 
 let segments = [];
@@ -2152,7 +2160,7 @@ function rasterPolyWall(cx, cy, r, sides, startAngle=0) {
 //  All 4 canvas boundaries: Neumann (zero normal gradient) — air
 //  passes through freely, no artificial suction/compression at edges.
 // ════════════════════════════════════════════════
-let ITERS = 20;
+let ITERS = 5;
 
 // ── Advanced simulation parameters (all user-tunable) ──
 let AP_ambientMult   = 0.55;   // ambient wind velocity multiplier
@@ -2311,15 +2319,20 @@ function initParticles() {
   const gridPxW = GW * CELL, gridPxH = GH * CELL;
   for (let i=0; i<maxParts; i++) {
     const p = mkParticle();
-    // Stagger ages — advance particle forward in wind direction
-    const headStart = Math.floor(Math.random() * AP_headStart);
-    p.age = headStart;
-    const radHS = windDeg * Math.PI / 180;
-    p.x += Math.sin(radHS) * headStart * windSpd * AP_headAdvMult;
-    p.y -= Math.cos(radHS) * headStart * windSpd * AP_headAdvMult;
-    // Clamp to grid bounds so particles don't appear outside the grid
-    p.x = Math.max(0, Math.min(gridPxW - 1, p.x));
-    p.y = Math.max(0, Math.min(gridPxH - 1, p.y));
+    // Stagger ages across the full lifespan so particles respawn at different times
+    // giving a continuous flow rather than all dying/spawning at once.
+    // For edge mode also pre-advance position so the canvas fills immediately.
+    const staggerAge = Math.floor(Math.random() * p.life);
+    p.age = staggerAge;
+    if (spawnMode !== 'line') {
+      // Edge mode: advance position proportionally along wind direction
+      const headStart = Math.floor(Math.random() * AP_headStart);
+      const radHS = windDeg * Math.PI / 180;
+      p.x += Math.sin(radHS) * headStart * windSpd * AP_headAdvMult;
+      p.y -= Math.cos(radHS) * headStart * windSpd * AP_headAdvMult;
+      p.x = Math.max(0, Math.min(gridPxW - 1, p.x));
+      p.y = Math.max(0, Math.min(gridPxH - 1, p.y));
+    }
     particles.push(p);
   }
 }
@@ -2493,7 +2506,8 @@ function drawGridLines() {
   const barM       = parseFloat(rawBarM.toPrecision(2));
   const barPx      = barM / M_PER_PX;
 
-  // Minor grid lines
+  // Minor grid lines (skip if grid is hidden)
+  if (!showGrid) { ctxGrid.restore(); return; }
   ctxGrid.strokeStyle = lightMode ? 'rgba(180,190,210,0.45)' : 'rgba(30,37,53,0.55)';
   ctxGrid.lineWidth = 0.5;
   for (let x=0;x<=canvasW;x+=CELL){ctxGrid.beginPath();ctxGrid.moveTo(x,0);ctxGrid.lineTo(x,canvasH);ctxGrid.stroke();}
@@ -3004,9 +3018,10 @@ function speedColor(t) {
   t=Math.max(0,Math.min(1,t));
   let r,g,b;
   if (lightMode) {
-    // Light mode: dark teal → dark orange → dark red (visible on white)
-    if (t<0.5){const u=t*2;r=Math.round(lerp(0,180,u));g=Math.round(lerp(120,100,u));b=Math.round(lerp(100,0,u));}
-    else{const u=(t-0.5)*2;r=Math.round(lerp(180,200,u));g=Math.round(lerp(100,20,u));b=Math.round(lerp(0,20,u));}
+    // Light mode: vivid blue → vivid green → vivid orange → vivid red
+    if (t<0.33){const u=t/0.33;r=Math.round(lerp(0,0,u));g=Math.round(lerp(100,180,u));b=Math.round(lerp(220,0,u));}
+    else if (t<0.66){const u=(t-0.33)/0.33;r=Math.round(lerp(0,230,u));g=Math.round(lerp(180,140,u));b=Math.round(lerp(0,0,u));}
+    else{const u=(t-0.66)/0.34;r=Math.round(lerp(230,210,u));g=Math.round(lerp(140,0,u));b=Math.round(lerp(0,0,u));}
   } else {
     // Dark mode: green → yellow → red
     if (t<0.5){const u=t*2;r=Math.round(lerp(26,234,u));g=Math.round(lerp(200,179,u));b=Math.round(lerp(95,20,u));}
@@ -4878,6 +4893,7 @@ function toggleLayerMenu(n) {
   if(n==='vectors')  showVectors  =tg.classList.contains('on');
   if(n==='particles')showParticles=tg.classList.contains('on');
   if(n==='dimensions'){showDimensions=tg.classList.contains('on'); redrawWalls();}
+  if(n==='grid'){showGrid=tg.classList.contains('on'); drawGridLines();}
 }
 
 // Close menus on outside click
@@ -4891,6 +4907,7 @@ function toggleLayer(n){
   if(n==='vectors')  showVectors  =tg.classList.contains('on');
   if(n==='particles')showParticles=tg.classList.contains('on');
   if(n==='dimensions'){showDimensions=tg.classList.contains('on'); redrawWalls();}
+  if(n==='grid'){showGrid=tg.classList.contains('on'); drawGridLines();}
 }
 
 function clearAll(){
@@ -5217,6 +5234,13 @@ document.addEventListener('keydown', e => {
       break;
     case 'delete':
     case 'backspace':
+      // Delete selected zone if select tool is active and a zone is selected
+      if (tool === 'select' && selectedZoneIdx !== null) {
+        deleteZone(selectedZoneIdx);
+        selectedZoneIdx = null;
+        break;
+      }
+      // Delete selected segments
       if (selectedSet.size > 0 && tool === 'select') {
         snapshotSegments();
         // Delete all selected, highest index first to preserve lower indices
@@ -5348,60 +5372,20 @@ function removeRecentProject(name) {
 }
 
 function renderRecentProjects() {
-  const list    = getRecentProjects();
+  // Cloud is the single source of truth — always show cloud projects
   const section = document.getElementById('wrecent-section');
   const listEl  = document.getElementById('wrecent-list');
-  if (!section) return;
-  if (!list.length) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
-  listEl.innerHTML = list.map(p => {
-    const safeName = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const hasData  = !!p.dataKey;
-    return `<div class="wrecent-item${hasData ? '' : ' wri-no-data'}"
-        onclick="openRecentProject('${safeName}')"
-        title="${hasData ? 'Click to open' : 'No saved data — re-save project to enable'}">
-      <div class="wri-left">
-        <div class="wri-name">${p.name}</div>
-        <div class="wri-meta">${p.scale||'—'} · ${p.date||''}${hasData ? '' : ' · <em style="color:var(--red)">no data</em>'}</div>
-      </div>
-      <button class="wri-del" title="Remove from recents"
-        onclick="event.stopPropagation();removeRecentProject('${safeName}')">✕</button>
-    </div>`;
-  }).join('');
+  if (!section || !listEl) return;
+  if (_cloudReady) {
+    renderCloudProjects();
+  } else {
+    section.style.display = 'block';
+    listEl.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:9px;color:var(--dim);padding:8px 0;letter-spacing:0.08em;">Loading cloud projects…</div>';
+  }
 }
-
 function openRecentProject(name) {
-  const list  = getRecentProjects();
-  const entry = list.find(p => p.name === name);
-  if (!entry) return;
-
-  if (!entry.dataKey) {
-    flashHint('⚠ No saved data for "' + name + '" — use Open File to load manually');
-    return;
-  }
-
-  try {
-    const raw = localStorage.getItem(entry.dataKey);
-    if (!raw) throw new Error('missing');
-    const state = JSON.parse(raw);
-    // Restore BASE_GRID before applyState so M_PER_PX is correct
-    if (state.baseGridWM) { BASE_GRID_W_M = state.baseGridWM; BASE_GRID_H_M = state.baseGridHM || state.baseGridWM; }
-    else if (state.gridWM) { BASE_GRID_W_M = state.gridWM; BASE_GRID_H_M = state.gridHM || state.gridWM; }
-    document.getElementById('welcome-overlay').classList.add('hidden');
-    applyState(state); // applyState restores M_PER_PX from state.mPerPx
-    if (state.projectName) setProjectName(state.projectName);
-    else setProjectName(name);
-    drawGridLines();
-    flashHint('✓ Opened: ' + projectName);
-  } catch(e) {
-    // Data was cleared or corrupted
-    const list2 = getRecentProjects().map(p =>
-      p.name === name ? {...p, dataKey: null} : p
-    );
-    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list2)); } catch {}
-    renderRecentProjects();
-    flashHint('⚠ Could not load "' + name + '" — data may have been cleared by browser');
-  }
+  // Legacy local fallback — should not be called when cloud is ready
+  flashHint('⚠ Please use the cloud list to open projects');
 }
 
 // ── Sidebar toggle ────────────────────────────────────────────────────────────
