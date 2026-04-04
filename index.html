@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BEM Studio — Indoor CFD Wind Simulation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -562,6 +563,34 @@
   .reveal.visible {
     opacity:1; transform:translateY(0);
   }
+
+  /* Personalised nav */
+  .nav-user {
+    display:flex; align-items:center; gap:12px; margin-left:auto;
+  }
+  .nav-username {
+    font-family:'Space Mono',monospace; font-size:9px;
+    color:var(--dim); letter-spacing:0.1em;
+  }
+  .nav-username span { color:var(--accent); }
+  .nav-signout {
+    font-family:'Space Mono',monospace; font-size:9px;
+    font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--dim); background:transparent;
+    border:1px solid var(--border2); border-radius:4px;
+    padding:5px 10px; cursor:pointer; text-decoration:none;
+    transition:color 0.15s, border-color 0.15s;
+  }
+  .nav-signout:hover { color:var(--red); border-color:var(--red); }
+  .nav-open-sim {
+    font-family:'Space Mono',monospace; font-size:9px;
+    font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--bg); background:var(--accent);
+    text-decoration:none; padding:8px 18px; border-radius:4px;
+    transition:opacity 0.15s;
+  }
+  .nav-open-sim:hover { opacity:0.88; }
+
 </style>
 </head>
 <body>
@@ -577,7 +606,7 @@
   <div class="nav-links">
     <a href="#features" class="nav-link">Features</a>
     <a href="#how" class="nav-link">How it works</a>
-    <a href="signup.html" class="nav-cta">Get Access →</a>
+    <div id="nav-auth-area"><a href="signup.html" class="nav-cta">Get Access →</a></div>
   </div>
 </nav>
 
@@ -1591,5 +1620,35 @@ const observer = new IntersectionObserver(entries => {
 }, { threshold: 0.12 });
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 </script>
+
+<script>
+// ── Personalised nav: check for existing Supabase session ─────────────────
+(function(){
+  const SUPABASE_URL  = 'https://ozcfpvwgvpclvagefhnk.supabase.co';
+  const SUPABASE_ANON = 'sb_publishable_DWOx7lVVcDUtrlFGjQEgbQ_uHhUistO';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) return; // no session — nav stays as-is
+    const user     = session.user;
+    const username = user.user_metadata?.username || user.email;
+    const area     = document.getElementById('nav-auth-area');
+    if (!area) return;
+    area.innerHTML = `
+      <div class="nav-user">
+        <span class="nav-username">Hi, <span>${username}</span></span>
+        <a href="simulator.html" class="nav-open-sim">Open Simulator →</a>
+        <a href="#" class="nav-signout" id="nav-signout-btn">Sign out</a>
+      </div>`;
+    document.getElementById('nav-signout-btn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await sb.auth.signOut();
+      window.location.reload();
+    });
+  });
+})();
+</script>
+
 </body>
 </html>

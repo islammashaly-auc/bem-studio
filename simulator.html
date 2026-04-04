@@ -152,13 +152,30 @@ async function init() {
   document.getElementById('app-bar').classList.add('visible');
 
   // NOW inject the simulator iframe src — only at this point
-  // The tool file is never loaded until we've confirmed the session
   const frame = document.getElementById('sim-frame');
   frame.src = 'wind_simulator_v9_6.html';
   frame.classList.add('visible');
 
   // Hide the auth gate
   document.getElementById('auth-gate').classList.add('hidden');
+
+  // ── Pass session token into the iframe once it signals ready ──────────
+  // The iframe posts 'BEM_IFRAME_READY' when its JS has loaded
+  window.addEventListener('message', async (evt) => {
+    if (evt.data?.type !== 'BEM_IFRAME_READY') return;
+    const { data: { session: freshSession } } = await sb.auth.getSession();
+    if (!freshSession) return;
+    frame.contentWindow.postMessage({
+      type:    'BEM_SESSION',
+      url:     SUPABASE_URL,
+      key:     SUPABASE_ANON,
+      session: {
+        access_token:  freshSession.access_token,
+        refresh_token: freshSession.refresh_token,
+        user:          freshSession.user,
+      }
+    }, '*');
+  });
 }
 
 async function signOut() {

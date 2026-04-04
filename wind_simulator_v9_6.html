@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Indoor CFD Wind Simulator</title>
 <style>
@@ -1058,6 +1059,67 @@
   ::-webkit-scrollbar-track { background:transparent; }
   ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
   ::-webkit-scrollbar-thumb:hover { background:var(--accent); }
+
+  /* ── CLOUD SAVE MODAL ── */
+  #cloud-modal-overlay {
+    display:none; position:fixed; inset:0; z-index:3000;
+    background:rgba(8,10,15,0.82); backdrop-filter:blur(6px);
+    align-items:center; justify-content:center;
+  }
+  #cloud-modal-overlay.show { display:flex; }
+  .cloud-modal {
+    background:var(--surface); border:1px solid var(--border2);
+    border-radius:10px; padding:28px 28px 24px;
+    width:100%; max-width:380px;
+    box-shadow:0 32px 80px rgba(0,0,0,0.7);
+    animation:cmFadeIn 0.2s ease;
+  }
+  @keyframes cmFadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .cm-title {
+    font-family:'Space Mono',monospace; font-size:11px;
+    font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:16px;
+  }
+  .cm-body { font-size:13px; color:var(--text); line-height:1.6; margin-bottom:20px; }
+  .cm-input {
+    width:100%; padding:10px 12px;
+    background:var(--panel); border:1px solid var(--border2);
+    border-radius:5px; color:var(--text-bright, #e8f0ff);
+    font-family:'Syne',sans-serif; font-size:14px;
+    outline:none; margin-bottom:18px;
+    transition:border-color 0.15s;
+  }
+  .cm-input:focus { border-color:var(--accent); }
+  .cm-input.hidden { display:none; }
+  .cm-btns { display:flex; gap:10px; justify-content:flex-end; }
+  .cm-btn {
+    font-family:'Space Mono',monospace; font-size:9px;
+    font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    padding:8px 16px; border-radius:5px; cursor:pointer;
+    border:1px solid var(--border2); background:var(--panel);
+    color:var(--dim); transition:all 0.15s;
+  }
+  .cm-btn:hover { color:var(--text); border-color:var(--text); }
+  .cm-btn.primary {
+    background:var(--accent); color:var(--bg);
+    border-color:var(--accent);
+  }
+  .cm-btn.primary:hover { opacity:0.88; }
+  .cm-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  /* cloud save status in header */
+  .cloud-status {
+    font-family:'Space Mono',monospace; font-size:9px;
+    letter-spacing:0.08em; color:var(--dim);
+    display:flex; align-items:center; gap:5px;
+  }
+  .cloud-status .cs-dot {
+    width:6px; height:6px; border-radius:50%;
+    background:var(--dim); transition:background 0.3s;
+  }
+  .cloud-status.saving .cs-dot { background:var(--amber, #f0a832); }
+  .cloud-status.saved  .cs-dot { background:var(--accent); }
+  .cloud-status.error  .cs-dot { background:var(--red); }
+
 </style>
 </head>
 <body>
@@ -1213,7 +1275,8 @@
       <div class="hdr-dropdown" id="dd-file">
         <div class="hdr-dd-item" onclick="newProject();closeMenus()"><span class="di">✦</span>New Project</div>
         <div class="hdr-dd-sep"></div>
-        <div class="hdr-dd-item" onclick="saveToFile();closeMenus()"><span class="di">💾</span>Save to File<span class="dk">Ctrl+S</span></div>
+        <div class="hdr-dd-item" onclick="saveToCloud();closeMenus()"><span class="di">☁</span>Save to Cloud<span class="dk">Ctrl+S</span></div>
+        <div class="hdr-dd-item" onclick="downloadLocalJSON(collectState());closeMenus()"><span class="di">💾</span>Download Local Copy</div>
         <div class="hdr-dd-item" onclick="document.getElementById('file-load').click();closeMenus()"><span class="di">📂</span>Load from File<span class="dk">Ctrl+O</span></div>
         <div class="hdr-dd-sep"></div>
         <div class="hdr-dd-item" onclick="saveToLocalStorage();closeMenus()"><span class="di">⬛</span>Quick Save<span class="dk">Ctrl+Q</span></div>
@@ -1275,6 +1338,11 @@
     <span class="lbl">ZONES</span>
     <span class="val" id="h-zones">0</span>
   </div>
+  <div class="cloud-status" id="cloud-status" title="Cloud save status">
+    <div class="cs-dot"></div>
+    <span id="cloud-status-text">Cloud</span>
+  </div>
+  <div class="hdr-sep"></div>
   <button class="run-btn" id="run-btn" onclick="toggleSim()">
     <div class="dot"></div><span id="run-lbl">RUN SIM</span>
   </button>
@@ -1718,7 +1786,7 @@
       <button class="confirm-btn" onclick="closeNewProjectConfirm()">Cancel</button>
       <button class="confirm-btn danger" onclick="newProjectNoSave()">Discard</button>
       <button class="confirm-btn" onclick="saveToLocalStorage();newProjectNoSave()">Quick Save</button>
-      <button class="confirm-btn primary" onclick="saveToFile();newProjectNoSave()">Save to File</button>
+      <button class="confirm-btn primary" onclick="saveToCloud();newProjectNoSave()">Save to Cloud</button>
     </div>
   </div>
 </div>
@@ -5081,7 +5149,7 @@ document.addEventListener('keydown', e => {
   if (ctrl && e.altKey && e.key.toLowerCase() === 'l')            { e.preventDefault(); loadFromLocalStorage(); return; }
   if (ctrl && e.key === 'z')                         { e.preventDefault(); undo(); return; }
   if (ctrl && (e.key === 'y' || (shift && e.key === 'Z'))) { e.preventDefault(); redo(); return; }
-  if (ctrl && e.key === 's')                         { e.preventDefault(); saveToFile(); return; }
+  if (ctrl && e.key === 's')                         { e.preventDefault(); saveToCloud(); return; }
   if (ctrl && e.key === 'o')                         { e.preventDefault(); document.getElementById('file-load').click(); return; }
   if (ctrl && e.key === 'c')                         { e.preventDefault(); copySelected(); return; }
 
@@ -5557,6 +5625,313 @@ showScreen('wscreen-landing');
 resize();
 setDeg(0);
 onSpd(5);
+
+// Signal parent (simulator.html) that we're ready to receive the session token
+if (window.parent && window.parent !== window) {
+  window.parent.postMessage({ type: 'BEM_IFRAME_READY' }, '*');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  CLOUD SAVE / LOAD — BEM Studio Supabase integration
+//  Session token is passed in from simulator.html via postMessage
+// ════════════════════════════════════════════════════════════════════════
+let _sbClient   = null;   // Supabase client, initialised after token arrives
+let _sbSession  = null;   // current session object
+let _cloudReady = false;  // true once Supabase is initialised
+let _pendingSave = null;  // state object waiting for modal resolution
+
+// ── Receive session token from parent (simulator.html) ──────────────────
+window.addEventListener('message', async (evt) => {
+  if (evt.data?.type !== 'BEM_SESSION') return;
+  const { url, key, session } = evt.data;
+  const { createClient } = supabase;
+  _sbClient  = createClient(url, key, {
+    auth: { persistSession: false }
+  });
+  // Inject the session directly
+  await _sbClient.auth.setSession({
+    access_token:  session.access_token,
+    refresh_token: session.refresh_token,
+  });
+  _sbSession  = session;
+  _cloudReady = true;
+  setCloudStatus('saved', 'Cloud ready');
+  // Load cloud projects into the recent list
+  await renderCloudProjects();
+});
+
+// ── Status chip helper ───────────────────────────────────────────────────
+function setCloudStatus(state, text) {
+  const el = document.getElementById('cloud-status');
+  const tx = document.getElementById('cloud-status-text');
+  if (!el || !tx) return;
+  el.className = 'cloud-status ' + (state || '');
+  tx.textContent = text || 'Cloud';
+}
+
+// ── Main save entry point (replaces saveToFile) ──────────────────────────
+async function saveToCloud() {
+  if (!_cloudReady) {
+    flashHint('⚠ Cloud not ready — try again in a moment');
+    return;
+  }
+  const state = collectState();
+  state.projectName = projectName;
+
+  // Always also trigger local download as backup
+  downloadLocalJSON(state);
+
+  // Check if project name already exists in cloud
+  setCloudStatus('saving', 'Checking…');
+  const { data: existing, error } = await _sbClient
+    .from('projects')
+    .select('id, name')
+    .eq('user_id', _sbSession.user.id)
+    .eq('name', projectName)
+    .maybeSingle();
+
+  if (error) {
+    setCloudStatus('error', 'Error');
+    flashHint('⚠ Cloud error: ' + error.message);
+    return;
+  }
+
+  if (existing) {
+    // Name collision — show modal
+    _pendingSave = { state, existingId: existing.id };
+    openCloudModal('conflict');
+  } else {
+    // New project — save directly
+    await doCloudInsert(state);
+  }
+}
+
+// ── Insert new project ───────────────────────────────────────────────────
+async function doCloudInsert(state) {
+  setCloudStatus('saving', 'Saving…');
+  const { error } = await _sbClient.from('projects').insert({
+    user_id: _sbSession.user.id,
+    name:    state.projectName,
+    data:    state,
+  });
+  if (error) {
+    setCloudStatus('error', 'Save failed');
+    flashHint('⚠ Cloud save failed: ' + error.message);
+    return;
+  }
+  setCloudStatus('saved', 'Saved ✓');
+  flashHint('✓ Saved to cloud: ' + state.projectName);
+  const scaleLabel = {0.025:'Small',0.0625:'Medium',0.25:'Large'}[M_PER_PX]||'Custom';
+  addToRecentProjects(state.projectName, scaleLabel);
+  await renderCloudProjects();
+}
+
+// ── Update existing project (overwrite) ─────────────────────────────────
+async function doCloudUpdate(id, state) {
+  setCloudStatus('saving', 'Saving…');
+  const { error } = await _sbClient.from('projects').update({
+    data:       state,
+    updated_at: new Date().toISOString(),
+  }).eq('id', id);
+  if (error) {
+    setCloudStatus('error', 'Save failed');
+    flashHint('⚠ Cloud save failed: ' + error.message);
+    return;
+  }
+  setCloudStatus('saved', 'Saved ✓');
+  flashHint('✓ Overwritten in cloud: ' + state.projectName);
+  await renderCloudProjects();
+}
+
+// ── Modal helpers ────────────────────────────────────────────────────────
+function openCloudModal(mode) {
+  const overlay = document.getElementById('cloud-modal-overlay');
+  const body    = document.getElementById('cm-body');
+  const inp     = document.getElementById('cm-new-name');
+  const btnSA   = document.getElementById('cm-btn-saveas');
+  const btnOW   = document.getElementById('cm-btn-overwrite');
+
+  if (mode === 'conflict') {
+    document.getElementById('cm-title').textContent = 'Project Already Exists';
+    body.textContent = '"' + projectName + '" already exists in your cloud. Overwrite it, or save under a new name?';
+    inp.classList.add('hidden');
+    inp.value = '';
+    btnSA.textContent  = 'Save as New…';
+    btnSA.onclick      = () => switchModalToRename();
+    btnOW.textContent  = 'Overwrite';
+    btnOW.classList.add('primary');
+    btnOW.style.display = '';
+  } else if (mode === 'rename') {
+    document.getElementById('cm-title').textContent = 'Save as New Project';
+    body.textContent = 'Enter a name for the new copy:';
+    inp.classList.remove('hidden');
+    inp.value = projectName + ' (copy)';
+    inp.focus();
+    inp.select();
+    btnSA.textContent  = 'Save';
+    btnSA.onclick      = () => cloudSaveAsNewName();
+    btnOW.style.display = 'none';
+  }
+  overlay.classList.add('show');
+}
+
+function switchModalToRename() {
+  openCloudModal('rename');
+}
+
+function closeCloudModal() {
+  document.getElementById('cloud-modal-overlay').classList.remove('show');
+  _pendingSave = null;
+  setCloudStatus('saved', 'Cloud ready');
+}
+
+async function cloudOverwrite() {
+  if (!_pendingSave) return;
+  closeCloudModal();
+  await doCloudUpdate(_pendingSave.existingId, _pendingSave.state);
+}
+
+async function cloudSaveAsNewName() {
+  if (!_pendingSave) return;
+  const inp = document.getElementById('cm-new-name');
+  const newName = inp.value.trim();
+  if (!newName) { inp.focus(); return; }
+
+  // Check the new name isn't also taken
+  const { data: existing2 } = await _sbClient
+    .from('projects')
+    .select('id')
+    .eq('user_id', _sbSession.user.id)
+    .eq('name', newName)
+    .maybeSingle();
+
+  if (existing2) {
+    inp.style.borderColor = 'var(--red)';
+    inp.title = 'This name is also taken — choose another';
+    inp.focus();
+    return;
+  }
+  inp.style.borderColor = '';
+
+  // Save under the new name
+  const state = { ..._pendingSave.state, projectName: newName };
+  setProjectName(newName);
+  closeCloudModal();
+  await doCloudInsert(state);
+}
+
+// ── Local JSON download (always triggered on save) ───────────────────────
+function downloadLocalJSON(state) {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  const ts   = new Date().toISOString().slice(0,16).replace('T','-').replace(':','-');
+  const safe = (state.projectName||'project').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  a.download = safe + '-' + ts + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ── Load cloud projects into the welcome screen ──────────────────────────
+async function renderCloudProjects() {
+  if (!_cloudReady) return;
+  const { data: projects, error } = await _sbClient
+    .from('projects')
+    .select('id, name, updated_at')
+    .eq('user_id', _sbSession.user.id)
+    .order('updated_at', { ascending: false })
+    .limit(20);
+
+  if (error || !projects) return;
+
+  const section = document.getElementById('wrecent-section');
+  const listEl  = document.getElementById('wrecent-list');
+  if (!section || !listEl) return;
+
+  if (!projects.length) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  listEl.innerHTML = projects.map(p => {
+    const safe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const date = new Date(p.updated_at).toLocaleDateString('en-AU', {
+      day:'2-digit', month:'short', year:'numeric'
+    });
+    return `<div class="wrecent-item" onclick="openCloudProject('${safe}')" title="Open from cloud">
+      <div class="wri-left">
+        <div class="wri-name">${p.name}</div>
+        <div class="wri-meta">☁ Cloud · ${date}</div>
+      </div>
+      <button class="wri-del" title="Delete from cloud"
+        onclick="event.stopPropagation();deleteCloudProject('${safe}','${p.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── Open a project from cloud ────────────────────────────────────────────
+async function openCloudProject(name) {
+  if (!_cloudReady) return;
+  setCloudStatus('saving', 'Loading…');
+  const { data, error } = await _sbClient
+    .from('projects')
+    .select('data')
+    .eq('user_id', _sbSession.user.id)
+    .eq('name', name)
+    .single();
+
+  if (error || !data) {
+    setCloudStatus('error', 'Load failed');
+    flashHint('⚠ Could not load "' + name + '" from cloud');
+    return;
+  }
+  const state = data.data;
+  if (state.baseGridWM) { BASE_GRID_W_M = state.baseGridWM; BASE_GRID_H_M = state.baseGridHM || state.baseGridWM; }
+  else if (state.gridWM) { BASE_GRID_W_M = state.gridWM;   BASE_GRID_H_M = state.gridHM || state.gridWM; }
+  document.getElementById('welcome-overlay').classList.add('hidden');
+  applyState(state);
+  if (state.projectName) setProjectName(state.projectName);
+  drawGridLines();
+  setCloudStatus('saved', 'Loaded ✓');
+  flashHint('✓ Opened from cloud: ' + projectName);
+}
+
+// ── Delete a project from cloud ──────────────────────────────────────────
+async function deleteCloudProject(name, id) {
+  if (!_cloudReady) return;
+  if (!confirm('Delete "' + name + '" from cloud? This cannot be undone.')) return;
+  const { error } = await _sbClient
+    .from('projects')
+    .delete()
+    .eq('id', id);
+  if (error) { flashHint('⚠ Delete failed: ' + error.message); return; }
+  flashHint('✓ Deleted: ' + name);
+  await renderCloudProjects();
+}
+
+// ── Close modal on Escape ────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('cloud-modal-overlay').classList.contains('show')) {
+      closeCloudModal();
+    }
+  }
+});
+
 </script>
+
+<!-- CLOUD SAVE MODAL -->
+<div id="cloud-modal-overlay">
+  <div class="cloud-modal">
+    <div class="cm-title" id="cm-title">Save to Cloud</div>
+    <div class="cm-body" id="cm-body">A project with this name already exists. What would you like to do?</div>
+    <input class="cm-input hidden" id="cm-new-name" type="text" placeholder="Enter new project name…" maxlength="80">
+    <div class="cm-btns" id="cm-btns">
+      <button class="cm-btn" onclick="closeCloudModal()">Cancel</button>
+      <button class="cm-btn" id="cm-btn-saveas" onclick="cloudSaveAsNewName()">Save as New</button>
+      <button class="cm-btn primary" id="cm-btn-overwrite" onclick="cloudOverwrite()">Overwrite</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
