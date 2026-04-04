@@ -1533,8 +1533,8 @@
         <input type="range" min="0" max="100" value="5" step="0.5" oninput="onSpd(+this.value)">
       </div>
       <div class="srow">
-        <div class="slbl"><span>Particles</span><span class="sval" id="sl-parts">150</span></div>
-        <input type="range" min="50" max="3000" value="150" step="50" oninput="onParts(+this.value)">
+        <div class="slbl"><span>Particles</span><span class="sval" id="sl-parts">300</span></div>
+        <input type="range" min="50" max="3000" value="300" step="50" oninput="onParts(+this.value)">
       </div>
       <div class="srow">
         <div class="slbl"><span>Turbulence</span><span class="sval" id="sl-turb">0.3</span></div>
@@ -1634,9 +1634,9 @@
         <div class="adv-section">
           <div class="adv-section-lbl">Pressure Solver</div>
           <div class="adv-row">
-            <span class="adv-lbl">Solver Iterations<em>more = better but slower (5–120)</em></span>
+            <span class="adv-lbl">Solver Iterations<em>more = better but slower (40–120)</em></span>
             <div class="adv-ctrl">
-              <input class="adv-inp" type="number" step="5" id="ap-iters" value="5" onchange="setAP('ITERS',+this.value,-Infinity,Infinity)">
+              <input class="adv-inp" type="number" step="5" id="ap-iters" value="20" onchange="setAP('ITERS',+this.value,-Infinity,Infinity)">
             </div>
           </div>
           <div class="adv-row">
@@ -5638,45 +5638,11 @@ document.getElementById('canvas-area').addEventListener('wheel', e => {
   setZoom(zoomLevel + delta);
 }, { passive: false });
 
-// ── Init ─────────────────────────────────────────────────────────────────────
-renderRecentProjects();
-showScreen('wscreen-landing');
-resize();
-setDeg(0);
-onSpd(5);
-
-// Signal parent (simulator.html) that we're ready to receive the session token
-if (window.parent && window.parent !== window) {
-  window.parent.postMessage({ type: 'BEM_IFRAME_READY' }, '*');
-}
-
-// ════════════════════════════════════════════════════════════════════════
-//  CLOUD SAVE / LOAD — BEM Studio Supabase integration
-//  Auto-save: debounced 3s after any change, always overwrites same project
-//  Ctrl+S: immediate overwrite + local JSON download
-//  File → Save as New Version: prompts for new name, inserts new record
-// ════════════════════════════════════════════════════════════════════════
 let _sbClient    = null;   // Supabase client
 let _sbSession   = null;   // current session
 let _cloudReady  = false;  // true once session received
 let _cloudId     = null;   // uuid of the current project's cloud row (null = not yet saved)
 let _autoSaveTimer = null; // debounce handle
-
-// ── Receive session token from parent ───────────────────────────────────
-window.addEventListener('message', async (evt) => {
-  if (evt.data?.type !== 'BEM_SESSION') return;
-  const { url, key, session } = evt.data;
-  const { createClient } = supabase;
-  _sbClient = createClient(url, key, { auth: { persistSession: false } });
-  await _sbClient.auth.setSession({
-    access_token:  session.access_token,
-    refresh_token: session.refresh_token,
-  });
-  _sbSession  = session;
-  _cloudReady = true;
-  setCloudStatus('saved', 'Cloud ready');
-  await renderCloudProjects();
-});
 
 // ── Status chip ──────────────────────────────────────────────────────────
 function setCloudStatus(state, text) {
@@ -5695,6 +5661,43 @@ function triggerAutoSave() {
   setCloudStatus('saving', 'Unsaved…');
   _autoSaveTimer = setTimeout(() => { _doCloudSave(false); }, 3000);
 }
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+renderRecentProjects();
+showScreen('wscreen-landing');
+resize();
+setDeg(0);
+onSpd(5);
+
+// Signal parent (simulator.html) that we're ready to receive the session token
+if (window.parent && window.parent !== window) {
+  window.parent.postMessage({ type: 'BEM_IFRAME_READY' }, '*');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  CLOUD SAVE / LOAD — BEM Studio Supabase integration
+//  Auto-save: debounced 3s after any change, always overwrites same project
+//  Ctrl+S: immediate overwrite + local JSON download
+//  File → Save as New Version: prompts for new name, inserts new record
+// ════════════════════════════════════════════════════════════════════════
+
+// ── Receive session token from parent ───────────────────────────────────
+window.addEventListener('message', async (evt) => {
+  if (evt.data?.type !== 'BEM_SESSION') return;
+  const { url, key, session } = evt.data;
+  const { createClient } = supabase;
+  _sbClient = createClient(url, key, { auth: { persistSession: false } });
+  await _sbClient.auth.setSession({
+    access_token:  session.access_token,
+    refresh_token: session.refresh_token,
+  });
+  _sbSession  = session;
+  _cloudReady = true;
+  setCloudStatus('saved', 'Cloud ready');
+  await renderCloudProjects();
+});
+
+
 
 // ── Core save logic ──────────────────────────────────────────────────────
 // withDownload=true triggers local JSON download (Ctrl+S only)
@@ -5849,7 +5852,7 @@ async function renderCloudProjects() {
   if (!projects.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
   listEl.innerHTML = projects.map(p => {
-    const safe = p.name.replace(/\/g,'\\').replace(/'/g,"\'");
+    const safe = p.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     const date = new Date(p.updated_at).toLocaleDateString('en-AU',
       { day:'2-digit', month:'short', year:'numeric' });
     return `<div class="wrecent-item" onclick="openCloudProject('${safe}','${p.id}')" title="Open from cloud">
