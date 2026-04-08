@@ -75,11 +75,8 @@
     display: flex; align-items: center; gap: 10px;
   }
   .nav-logo-icon {
-    width:28px; height:28px;
-    border: 1.5px solid var(--accent);
-    border-radius: 4px;
-    display:flex; align-items:center; justify-content:center;
-    font-size:11px;
+    height:28px; width:auto;
+    display:flex; align-items:center;
   }
 
   .nav-links {
@@ -424,6 +421,71 @@
   .reveal.visible {
     opacity:1; transform:translateY(0);
   }
+
+  /* ── SCREENSHOT SLIDESHOW ── */
+  .slideshow-section {
+    position:relative; z-index:1;
+    padding: 80px 40px;
+    border-top:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+  }
+  .slideshow-inner { max-width:1000px; margin:0 auto; }
+  .slideshow-wrap {
+    position:relative;
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--surface);
+    border:1px solid var(--border2);
+    box-shadow:0 40px 80px rgba(0,0,0,0.5), 0 0 60px rgba(61,232,176,0.04);
+    aspect-ratio:16/9;
+  }
+  .slide {
+    position:absolute; inset:0;
+    opacity:0;
+    transition: opacity 0.6s ease;
+  }
+  .slide.active { opacity:1; }
+  .slide img {
+    width:100%; height:100%;
+    object-fit:cover; object-position:top;
+    display:block;
+  }
+  /* Prev / Next arrows */
+  .slide-arrow {
+    position:absolute; top:50%; transform:translateY(-50%);
+    z-index:10; width:40px; height:40px;
+    background:rgba(8,10,15,0.7); border:1px solid var(--border2);
+    border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text); font-size:16px;
+    transition:background 0.15s, border-color 0.15s;
+    backdrop-filter:blur(4px);
+  }
+  .slide-arrow:hover { background:rgba(61,232,176,0.15); border-color:var(--accent); color:var(--accent); }
+  .slide-prev { left:14px; }
+  .slide-next { right:14px; }
+  /* Dot indicators */
+  .slide-dots {
+    display:flex; gap:8px; justify-content:center;
+    margin-top:18px;
+  }
+  .slide-dot {
+    width:7px; height:7px; border-radius:50%;
+    background:var(--border2); cursor:pointer;
+    transition:background 0.2s, transform 0.2s;
+    border:none;
+  }
+  .slide-dot.active { background:var(--accent); transform:scale(1.3); }
+  /* Caption bar */
+  .slide-caption {
+    position:absolute; bottom:0; left:0; right:0;
+    padding:10px 16px;
+    background:linear-gradient(transparent, rgba(8,10,15,0.85));
+    font-family:'Space Mono',monospace; font-size:9px;
+    letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--dim); text-align:center;
+  }
+
 </style>
 </head>
 <body>
@@ -433,8 +495,7 @@
 <!-- NAV -->
 <nav>
   <a href="/" class="nav-logo">
-    <div class="nav-logo-icon">⬡</div>
-    BEM Studio
+    <img src="images/BEMStudio_logo.png" alt="BEM Studio" style="height:28px;width:auto;display:block;">
   </a>
   <div class="nav-links">
     <a href="#capabilities" class="nav-link">Features</a>
@@ -493,6 +554,35 @@
   </div>
 </div>
 
+
+<!-- SCREENSHOTS SLIDESHOW -->
+<section class="slideshow-section">
+  <div class="slideshow-inner">
+    <div class="section-label reveal" style="text-align:center;margin-bottom:16px;">In Action</div>
+    <h2 class="section-title reveal" style="text-align:center;max-width:100%;margin-bottom:32px;">See what the simulator looks like.</h2>
+    <div class="slideshow-wrap reveal" id="slideshow">
+      <div class="slide active">
+        <img src="images/CFD_Screenshot_1.png" alt="BEM Studio CFD Screenshot 1" loading="lazy">
+        <div class="slide-caption">Wind flow simulation — pressure heatmap overlay</div>
+      </div>
+      <div class="slide">
+        <img src="images/CFD_Screenshot_2.png" alt="BEM Studio CFD Screenshot 2" loading="lazy">
+        <div class="slide-caption">Particle streamlines through a floor plan layout</div>
+      </div>
+      <div class="slide">
+        <img src="images/CFD_Screenshot_3.png" alt="BEM Studio CFD Screenshot 3" loading="lazy">
+        <div class="slide-caption">Zone comfort analysis and velocity overlays</div>
+      </div>
+      <button class="slide-arrow slide-prev" onclick="slideMove(-1)" aria-label="Previous">&#8592;</button>
+      <button class="slide-arrow slide-next" onclick="slideMove(1)" aria-label="Next">&#8594;</button>
+    </div>
+    <div class="slide-dots">
+      <button class="slide-dot active" onclick="slideTo(0)"></button>
+      <button class="slide-dot" onclick="slideTo(1)"></button>
+      <button class="slide-dot" onclick="slideTo(2)"></button>
+    </div>
+  </div>
+</section>
 
 <!-- CAPABILITIES -->
 <section id="capabilities">
@@ -591,7 +681,7 @@
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-logo">⬡ BEM Studio</div>
+  <div class="footer-logo"><img src="images/BEMStudio_logo.png" alt="BEM Studio" style="height:22px;width:auto;opacity:0.85;"></div>
   <div class="footer-links">
     <a href="#capabilities" class="footer-link">Features</a>
     <a href="#how" class="footer-link">How it works</a>
@@ -781,6 +871,34 @@
   draw();
 })();
 
+
+// ── Screenshot slideshow ──────────────────────────────────────────────────
+(function(){
+  let current = 0;
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.querySelectorAll('.slide-dot');
+  const total  = slides.length;
+  let timer;
+
+  function show(idx) {
+    slides[current].classList.remove('active');
+    dots[current].classList.remove('active');
+    current = (idx + total) % total;
+    slides[current].classList.add('active');
+    dots[current].classList.add('active');
+    resetTimer();
+  }
+
+  function resetTimer() {
+    clearInterval(timer);
+    timer = setInterval(() => show(current + 1), 4000);
+  }
+
+  window.slideMove = (dir) => show(current + dir);
+  window.slideTo  = (idx)  => show(idx);
+
+  resetTimer();
+})();
 
 const observer = new IntersectionObserver(entries => {
   entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
