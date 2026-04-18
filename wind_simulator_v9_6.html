@@ -155,26 +155,37 @@
 
   .left {
     width: 214px;
+    min-width: 140px;
+    max-width: 380px;
     background: var(--surface);
     border-right: 1px solid var(--border);
     display: flex; flex-direction: column;
     overflow-y: auto; flex-shrink: 0;
-    transition: width 0.28s cubic-bezier(.4,0,.2,1), opacity 0.22s ease;
+    transition: opacity 0.22s ease;
     position: relative;
   }
-  .left.collapsed { width: 0; opacity: 0; overflow: hidden; border-right: none; }
+  .left.collapsed { width: 0!important; min-width: 0!important; opacity: 0; overflow: hidden; border-right: none; }
+  /* Resize handle */
+  .sidebar-resize-handle {
+    position: absolute; right: -4px; top: 0; bottom: 0;
+    width: 8px; z-index: 150; cursor: ew-resize;
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .sidebar-resize-handle:hover,
+  .sidebar-resize-handle.dragging { background: rgba(61,232,176,0.18); }
   /* Sidebar toggle tab */
   .sidebar-toggle {
-    position: absolute; right: -14px; top: 50%;
+    position: absolute; right: -18px; top: 50%;
     transform: translateY(-50%);
-    z-index: 100; width: 14px; height: 48px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-left: none; border-radius: 0 6px 6px 0;
+    z-index: 100; width: 18px; height: 64px;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-left: none; border-radius: 0 8px 8px 0;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
-    color: var(--dim); font-size: 9px; transition: color 0.15s, background 0.15s;
+    color: var(--text); font-size: 11px; transition: color 0.15s, background 0.15s;
     user-select: none;
   }
-  .sidebar-toggle:hover { color: var(--accent); background: var(--panel); }
+  .sidebar-toggle:hover { color: var(--accent); background: var(--panel); border-color: var(--accent); }
   /* Header project name */
   .hdr-project {
     display: flex; align-items: center; gap: 6px;
@@ -319,9 +330,10 @@
     flex: 1; position: relative; overflow: auto; background: #080a0f;
   }
   .canvas-wrap {
-    position: relative;  /* in flow — div scrolls this */
-    display: inline-block; /* shrink-wrap to canvas size */
+    position: relative;
+    display: inline-block;
     line-height: 0;
+    background: #080a0f; /* matches dark mode grid background */
   }
   .canvas-wrap canvas { position: absolute; top: 0; left: 0; display: block; }
   /* Override the global canvas rule for canvases inside wrap */
@@ -896,15 +908,16 @@
   .left { transition: width 0.28s cubic-bezier(.4,0,.2,1), opacity 0.22s ease; position:relative; }
   .left.collapsed { width:0!important; opacity:0; overflow:hidden; border-right:none!important; }
   .sidebar-toggle {
-    position:absolute; right:-14px; top:50%; transform:translateY(-50%);
-    z-index:100; width:14px; height:48px;
-    background:var(--surface); border:1px solid var(--border); border-left:none;
-    border-radius:0 6px 6px 0; cursor:pointer;
+    position:absolute; right:-22px; top:50%; transform:translateY(-50%);
+    z-index:200; width:22px; height:72px;
+    background:var(--panel); border:1px solid var(--accent);
+    border-left:none; border-radius:0 10px 10px 0; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
-    color:var(--dim); font-size:10px; user-select:none;
-    transition:color 0.15s, background 0.15s;
+    color:var(--accent); font-size:12px; user-select:none;
+    box-shadow:3px 0 12px rgba(61,232,176,0.15);
+    transition:color 0.15s, background 0.15s, box-shadow 0.15s;
   }
-  .sidebar-toggle:hover { color:var(--accent); background:var(--panel); }
+  .sidebar-toggle:hover { background:rgba(61,232,176,0.12); box-shadow:3px 0 18px rgba(61,232,176,0.3); }
   /* Header project name */
   .hdr-project {
     display:flex; align-items:center; gap:5px; cursor:pointer;
@@ -1120,6 +1133,310 @@
   .cloud-status.saved  .cs-dot { background:var(--accent); }
   .cloud-status.error  .cs-dot { background:var(--red); }
 
+
+  /* ── CURSOR TOOL LABEL ── */
+  #cursor-tool-label {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(8,10,15,0.75);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--border2);
+    display: none;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+  }
+
+
+  /* ── IMAGE LAYER ── */
+  #cvs-image { pointer-events:none; }
+
+  /* ── IMAGE MANAGER PANEL ── */
+  .img-manager {
+    position:fixed; top:44px; right:12px; transform:none;
+    z-index:3100; width:320px; max-height:calc(100vh - 60px);
+    background:var(--surface); border:1px solid var(--border2);
+    border-radius:10px; box-shadow:0 32px 80px rgba(0,0,0,0.7);
+    display:none; flex-direction:column; overflow:hidden;
+    animation:cmFadeIn 0.2s ease;
+  }
+  .img-manager.show { display:flex; }
+  .img-mgr-hdr {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px 12px;
+    border-bottom:1px solid var(--border);
+    font-family:'Space Mono',monospace; font-size:11px;
+    font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--accent);
+  }
+  .img-mgr-close {
+    background:none; border:none; color:var(--dim); cursor:pointer;
+    font-size:16px; line-height:1; padding:2px 6px;
+    transition:color 0.15s;
+  }
+  .img-mgr-close:hover { color:var(--red); }
+  .img-mgr-body { flex:1; overflow-y:auto; padding:14px 18px; }
+  .img-mgr-empty {
+    font-family:'Space Mono',monospace; font-size:9px;
+    color:var(--dim); letter-spacing:0.1em; text-align:center;
+    padding:24px 0;
+  }
+  .img-item {
+    display:flex; gap:10px; align-items:flex-start;
+    padding:10px 0; border-bottom:1px solid var(--border);
+  }
+  .img-item:last-child { border-bottom:none; }
+  .img-thumb {
+    width:52px; height:40px; object-fit:cover;
+    border-radius:3px; border:1px solid var(--border2);
+    flex-shrink:0;
+  }
+  .img-controls { flex:1; display:flex; flex-direction:column; gap:5px; }
+  .img-name {
+    font-family:'Space Mono',monospace; font-size:9px;
+    color:var(--text); letter-spacing:0.06em;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .img-row { display:flex; align-items:center; gap:6px; }
+  .img-lbl {
+    font-family:'Space Mono',monospace; font-size:8px;
+    color:var(--dim); letter-spacing:0.08em; min-width:44px;
+  }
+  .img-slider { flex:1; height:3px; }
+  .img-val {
+    font-family:'Space Mono',monospace; font-size:8px;
+    color:var(--accent); min-width:28px; text-align:right;
+  }
+  .img-btn-row { display:flex; gap:5px; margin-top:3px; }
+  .img-btn {
+    font-family:'Space Mono',monospace; font-size:8px;
+    font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+    padding:3px 8px; border-radius:3px; cursor:pointer;
+    background:var(--panel); border:1px solid var(--border2);
+    color:var(--dim); transition:all 0.12s;
+  }
+  .img-btn:hover { color:var(--text); border-color:var(--text); }
+  .img-btn.danger:hover { color:var(--red); border-color:var(--red); }
+  .img-btn.vis-off { opacity:0.45; }
+  .img-mgr-footer {
+    padding:12px 18px; border-top:1px solid var(--border);
+    display:flex; gap:8px;
+  }
+  .img-add-btn {
+    flex:1; padding:8px; text-align:center;
+    font-family:'Space Mono',monospace; font-size:9px;
+    font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    background:var(--accent); color:var(--bg);
+    border:none; border-radius:5px; cursor:pointer;
+    transition:opacity 0.15s;
+  }
+  .img-add-btn:hover { opacity:0.88; }
+
+  /* ── Image drag handles ── */
+  .img-handle {
+    position:absolute; width:12px; height:12px;
+    background:var(--accent); border:2px solid #080a0f;
+    border-radius:50%; cursor:nw-resize; z-index:200;
+    transform:translate(-50%,-50%);
+    box-shadow:0 0 6px rgba(61,232,176,0.5);
+  }
+
+  /* ── IFC IMPORT MODAL ── */
+  .ifc-modal-overlay {
+    display:none; position:fixed; inset:0; z-index:3200;
+    background:rgba(8,10,15,0.85); backdrop-filter:blur(6px);
+    align-items:center; justify-content:center;
+  }
+  .ifc-modal-overlay.show { display:flex; }
+  .ifc-modal {
+    background:var(--surface); border:1px solid var(--border2);
+    border-radius:10px; padding:28px; width:100%; max-width:440px;
+    box-shadow:0 32px 80px rgba(0,0,0,0.7);
+    animation:cmFadeIn 0.2s ease;
+  }
+  .ifc-title {
+    font-family:'Space Mono',monospace; font-size:11px;
+    font-weight:700; letter-spacing:0.15em; text-transform:uppercase;
+    color:var(--accent); margin-bottom:16px;
+  }
+  .ifc-field { margin-bottom:14px; }
+  .ifc-lbl {
+    font-family:'Space Mono',monospace; font-size:9px;
+    color:var(--dim); letter-spacing:0.1em; text-transform:uppercase;
+    display:block; margin-bottom:6px;
+  }
+  .ifc-select {
+    width:100%; padding:8px 10px;
+    background:var(--panel); border:1px solid var(--border2);
+    border-radius:4px; color:var(--text-bright);
+    font-family:'Syne',sans-serif; font-size:13px;
+    outline:none;
+  }
+  .ifc-select:focus { border-color:var(--accent); }
+  .ifc-radio-row { display:flex; gap:12px; }
+  .ifc-radio-opt {
+    display:flex; align-items:center; gap:6px;
+    font-family:'Space Mono',monospace; font-size:9px;
+    color:var(--text); letter-spacing:0.06em; cursor:pointer;
+  }
+  .ifc-note {
+    font-family:'Space Mono',monospace; font-size:8px;
+    color:var(--dim); line-height:1.6; margin-bottom:18px;
+    padding:10px; background:var(--panel); border-radius:4px;
+    border-left:2px solid var(--accent);
+  }
+  .ifc-btns { display:flex; gap:8px; justify-content:flex-end; }
+  .ifc-btn {
+    font-family:'Space Mono',monospace; font-size:9px;
+    font-weight:700; letter-spacing:0.12em; text-transform:uppercase;
+    padding:8px 16px; border-radius:5px; cursor:pointer;
+    border:1px solid var(--border2); background:var(--panel);
+    color:var(--dim); transition:all 0.15s;
+  }
+  .ifc-btn:hover { color:var(--text); border-color:var(--text); }
+  .ifc-btn.primary {
+    background:var(--accent); color:var(--bg); border-color:var(--accent);
+  }
+  .ifc-btn.primary:hover { opacity:0.88; }
+
+
+  /* Box selection */
+  .box-sel-rect {
+    position: absolute; pointer-events: none; z-index: 190;
+    border: 1.5px solid var(--accent);
+    background: rgba(61,232,176,0.06);
+    box-sizing: border-box;
+  }
+  .box-sel-rect.crossing {
+    border-style: dashed;
+    border-color: #f0a832;
+    background: rgba(240,168,50,0.06);
+  }
+
+
+  /* ── HELP BUTTON ── */
+  .help-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: none; border: 1.5px solid var(--border2);
+    color: var(--dim); font-family: 'Space Mono', monospace;
+    font-weight: 700; font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    margin-left: 8px; transition: all 0.15s; flex-shrink: 0;
+  }
+  .help-btn:hover { border-color: var(--accent); color: var(--accent);
+    box-shadow: 0 0 10px rgba(61,232,176,0.25); }
+
+  /* ── TUTORIAL OVERLAY ── */
+  .tut-overlay {
+    display: none; position: fixed; inset: 0; z-index: 4000;
+    pointer-events: none;
+  }
+  .tut-overlay.show { display: block; }
+
+  /* Spotlight backdrop — 4 panels around the highlighted region */
+  .tut-backdrop {
+    position: absolute; background: rgba(8,10,15,0.72);
+    pointer-events: all; transition: none;
+  }
+
+  /* Tutorial card */
+  .tut-card {
+    position: absolute; width: 320px;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 10px; padding: 22px 22px 18px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.75), 0 0 0 1px rgba(61,232,176,0.1);
+    pointer-events: all;
+    animation: tutCardIn 0.22s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes tutCardIn {
+    from { opacity:0; transform: translateY(10px) scale(0.97); }
+    to   { opacity:1; transform: translateY(0) scale(1); }
+  }
+  .tut-step-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'Space Mono', monospace; font-size: 8px; font-weight: 700;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 10px;
+  }
+  .tut-step-badge::before {
+    content: ''; display: block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 6px var(--accent);
+  }
+  .tut-title {
+    font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+    color: var(--text-bright, #e8edf5); margin-bottom: 10px; line-height: 1.3;
+  }
+  .tut-body {
+    font-family: 'Syne', sans-serif; font-size: 13px; color: var(--text);
+    line-height: 1.65; margin-bottom: 18px;
+  }
+  .tut-body code {
+    font-family: 'Space Mono', monospace; font-size: 10px;
+    background: rgba(61,232,176,0.1); color: var(--accent);
+    padding: 1px 5px; border-radius: 3px; white-space: nowrap;
+  }
+  .tut-body strong { color: var(--text-bright, #e8edf5); font-weight: 600; }
+  .tut-progress {
+    display: flex; gap: 4px; margin-bottom: 16px;
+  }
+  .tut-pip {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: var(--border2); transition: background 0.25s;
+  }
+  .tut-pip.done  { background: var(--accent); }
+  .tut-pip.active { background: var(--accent); opacity: 0.5; }
+  .tut-actions {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .tut-btn {
+    font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 7px 14px; border-radius: 5px; cursor: pointer;
+    border: 1px solid var(--border2); background: var(--panel);
+    color: var(--dim); transition: all 0.12s;
+  }
+  .tut-btn:hover { color: var(--text); border-color: var(--accent); }
+  .tut-btn.primary {
+    background: var(--accent); color: var(--bg);
+    border-color: var(--accent); box-shadow: 0 0 14px rgba(61,232,176,0.3);
+  }
+  .tut-btn.primary:hover { opacity: 0.88; }
+  .tut-close {
+    position: absolute; top: 12px; right: 14px;
+    background: none; border: none; color: var(--dim);
+    font-size: 14px; cursor: pointer; line-height: 1;
+    padding: 2px 4px; font-family: monospace;
+    transition: color 0.12s;
+  }
+  .tut-close:hover { color: var(--red); }
+
+  /* Spotlight connector arrow */
+  .tut-arrow {
+    position: absolute; pointer-events: none;
+    width: 0; height: 0;
+  }
+
+
+  /* Permeable screen tool */
+  .scr-perm-btn { border-color: #a0c8e8 !important; color: #a0c8e8 !important; }
+  .scr-perm-btn.active { background: rgba(160,200,232,0.15) !important; }
+  @keyframes screenToggleFlash {
+    0%   { opacity:1; }
+    25%  { opacity:0.2; }
+    50%  { opacity:1; }
+    75%  { opacity:0.5; }
+    100% { opacity:1; }
+  }
+  .screen-flash { animation: screenToggleFlash 0.35s ease; }
+
 </style>
 </head>
 <body>
@@ -1279,6 +1596,9 @@
         <div class="hdr-dd-item" onclick="saveAsNewVersion();closeMenus()"><span class="di">🔖</span>Save as New Version</div>
         <div class="hdr-dd-item" onclick="downloadLocalJSON(collectState());closeMenus()"><span class="di">💾</span>Download Local Copy</div>
         <div class="hdr-dd-item" onclick="document.getElementById('file-load').click();closeMenus()"><span class="di">📂</span>Load from File<span class="dk">Ctrl+O</span></div>
+        <div class="hdr-dd-item" onclick="document.getElementById('file-load-image').click();closeMenus()"><span class="di">🖼</span>Import Image (JPG/PNG/GIF)</div>
+        <div class="hdr-dd-item" onclick="document.getElementById('file-load-ifc').click();closeMenus()"><span class="di">🏗</span>Import IFC (Walls + Openings)</div>
+        <div class="hdr-dd-item" onclick="openImageManager();closeMenus()"><span class="di">🗂</span>Manage Images</div>
         <div class="hdr-dd-sep"></div>
         <div class="hdr-dd-item" onclick="saveToLocalStorage();closeMenus()"><span class="di">⬛</span>Quick Save<span class="dk">Ctrl+Q</span></div>
         <div class="hdr-dd-item" onclick="loadFromLocalStorage();closeMenus()"><span class="di">⬜</span>Quick Load<span class="dk">Ctrl+Alt+L</span></div>
@@ -1343,6 +1663,7 @@
     <span class="lbl">ZONES</span>
     <span class="val" id="h-zones">0</span>
   </div>
+  <div class="hdr-sep"></div>
   <div class="cloud-status" id="cloud-status" title="Cloud save status">
     <div class="cs-dot"></div>
     <span id="cloud-status-text">Cloud</span>
@@ -1354,10 +1675,14 @@
   <button class="run-btn" id="pause-btn" onclick="togglePause()" style="display:none; margin-left:6px; border-color:var(--amber); color:var(--amber); background:rgba(240,168,50,0.1);">
     <span id="pause-lbl">⏸ PAUSE</span>
   </button>
+  <button class="help-btn" id="help-btn" onclick="openTutorial()" title="Tutorial">
+    <span style="font-size:14px;line-height:1;">?</span>
+  </button>
 </header>
 
 <div class="body">
   <div class="left" id="sidebar-left">
+    <div class="sidebar-resize-handle" id="sidebar-resize-handle"></div>
     <div class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">‹</div>
 
     <div class="pblock" id="pb-draw-tools">
@@ -1425,6 +1750,24 @@
         <button class="perm-btn pm" id="pb-med"  onclick="setTreePerm('med')">Med<br><span style="font-size:7px;opacity:0.7">density</span></button>
         <button class="perm-btn pl" id="pb-low"  onclick="setTreePerm('low')">Low<br><span style="font-size:7px;opacity:0.7">density</span></button>
       </div>
+
+      <!-- Permeable Screen -->
+      <button class="tbtn" id="t-screen" onclick="setTool('screen')">
+        <span class="ico" style="color:#a0c8e8">⬦</span>
+        <span>Screen <span class="tsub">[Y] drag line · toggle %</span></span>
+      </button>
+      <div class="perm-row" id="screen-perm-row" style="display:none">
+        <button class="perm-btn scr-perm-btn active" id="spb-25" onclick="setScreenPerm('25')">25%<br><span style="font-size:7px;opacity:0.7">permeable</span></button>
+        <button class="perm-btn scr-perm-btn"        id="spb-50" onclick="setScreenPerm('50')">50%<br><span style="font-size:7px;opacity:0.7">permeable</span></button>
+        <button class="perm-btn scr-perm-btn"        id="spb-75" onclick="setScreenPerm('75')">75%<br><span style="font-size:7px;opacity:0.7">permeable</span></button>
+      </div>
+
+      <!-- Furniture -->
+      <button class="tbtn" id="t-furn" onclick="setTool('furn')">
+        <span class="ico" style="color:#c8a878">⬛</span>
+        <span>Furniture <span class="tsub">[F] solid obstacle</span></span>
+      </button>
+
 
       <!-- Eraser -->
       <button class="tbtn" id="t-eraser" onclick="setTool('eraser')">
@@ -1548,11 +1891,16 @@
         <div class="slbl"><span>Tail Length</span><span class="sval" id="sl-tail">50</span></div>
         <input type="range" min="0" max="120" value="50" step="1" oninput="onTail(+this.value)">
       </div>
-      <div class="toggle-row" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
-        <span class="toggle-lbl" style="color:var(--text);">Resolution</span>
-        <div style="display:flex;gap:4px;">
-          <button class="zone-btn active" id="res-high" onclick="setResolution(8)"  style="border-color:var(--accent);color:var(--accent);font-size:9px;padding:3px 9px;">High</button>
-          <button class="zone-btn"        id="res-low"  onclick="setResolution(16)" style="border-color:var(--accent);color:var(--accent);font-size:9px;padding:3px 9px;">Low</button>
+      <div class="srow">
+        <div class="slbl"><span>Sim Speed</span><span class="sval" id="sl-timescale">1×</span></div>
+        <input type="range" min="1" max="10" value="1" step="0.5" id="sl-timescale-input" oninput="onTimeScale(+this.value)">
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        <div class="slbl" style="margin-bottom:6px;"><span style="color:var(--text);">Resolution</span></div>
+        <div style="display:flex;gap:4px;width:100%;">
+          <button class="zone-btn"        id="res-ultra" onclick="setResolution(4)"  style="flex:1;border-color:var(--accent);color:var(--accent);font-size:9px;padding:4px 0;">Ultra</button>
+          <button class="zone-btn active" id="res-high"  onclick="setResolution(8)"  style="flex:1;border-color:var(--accent);color:var(--accent);font-size:9px;padding:4px 0;">High</button>
+          <button class="zone-btn"        id="res-low"   onclick="setResolution(16)" style="flex:1;border-color:var(--accent);color:var(--accent);font-size:9px;padding:4px 0;">Low</button>
         </div>
       </div>
     </div>
@@ -1562,6 +1910,8 @@
       <div class="plabel" onclick="togglePblock('simulation-stats')">Simulation Stats<span class="chevron">▾</span></div>
       <div class="pblock-body" id="pb-body-simulation-stats">
       <input type="file" id="file-load" accept=".json" style="display:none" onchange="loadFromFile(event)">
+    <input type="file" id="file-load-image" accept="image/*" style="display:none" onchange="onImageFileSelected(event)">
+    <input type="file" id="file-load-ifc"   accept=".ifc" style="display:none" onchange="onIFCFileSelected(event)">
       <div class="stat"><span class="sl">Walls</span><span class="sv" id="s-walls">0</span></div>
       <div class="stat"><span class="sl">Openings</span><span class="sv" id="s-opens">0</span></div>
       <div class="stat"><span class="sl">Grid Size</span><span class="sv" id="s-grid">—</span></div>
@@ -1579,6 +1929,7 @@
   <div class="canvas-area" id="canvas-area">
     <div class="canvas-wrap" id="canvas-wrap">
       <canvas id="cvs-grid"></canvas>
+      <canvas id="cvs-image"></canvas>
       <canvas id="cvs-pressure"></canvas>
       <canvas id="cvs-walls"></canvas>
       <canvas id="cvs-particles"></canvas>
@@ -1924,6 +2275,26 @@
   </div>
 </div>
 
+
+<!-- Tree context menu -->
+<div class="ctx-menu" id="tree-ctx-menu">
+  <div class="ctx-item" onclick="treeCtxAction('density-high')"><span class="cico">🌳</span> High Density</div>
+  <div class="ctx-item" onclick="treeCtxAction('density-med')"><span class="cico">🌲</span> Medium Density</div>
+  <div class="ctx-item" onclick="treeCtxAction('density-low')"><span class="cico">🌱</span> Low Density</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="treeCtxAction('copy')"><span class="cico">⧉</span> Copy</div>
+  <div class="ctx-item" id="tree-ctx-paste" onclick="treeCtxAction('paste')"><span class="cico">⎘</span> Paste in place</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="treeCtxAction('delete')"><span class="cico" style="color:var(--red)">✕</span> Delete Tree</div>
+</div>
+
+<!-- Image context menu -->
+<div class="ctx-menu" id="img-ctx-menu">
+  <div class="ctx-item" onclick="imgCtxAction('lock')"><span class="cico">🔒</span> <span id="img-ctx-lock-lbl">Lock Image</span></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" onclick="imgCtxAction('delete')"><span class="cico" style="color:var(--red)">✕</span> Delete Image</div>
+</div>
+
 <!-- Zone context menu -->
 <div class="ctx-menu" id="zone-ctx-menu">
   <div class="ctx-item" onclick="zoneCtxAction('rename')"><span class="cico">✎</span> Rename</div>
@@ -1945,7 +2316,7 @@
 // ════════════════════════════════════════════════
 let selectedScale = null; // set by welcome screen
 let projectName = 'Untitled Project'; // current project name
-let CELL = 8;             // px per grid cell — 8=high res, 16=low res
+let CELL = 8;             // px per grid cell — 4=ultra, 8=high (default), 16=low
 let M_PER_PX = 0.025;    // metres per pixel — fixed at grid selection, never changes with window resize
 let REF_CANVAS_W = 0;   // canvas width at the moment M_PER_PX was set (for save/restore)
 let GRID_W_M = 25;       // real-world width currently visible (changes with zoom)
@@ -1960,6 +2331,7 @@ const PX_PER_M = 40;     // inverse: 1m = 40px = 5 cells
 let windDeg = 0, windSpd = 5, maxParts = 150, turbulence = 0.3, tailLength = 50;
 let simPaused = false;
 let simRunning = false, animId = null;
+let simTimeScale = 1.0; // animation speed multiplier (1x–10x)
 let showPressure = true, showVectors = false, showParticles = true, showDimensions = false, showGrid = true;
 let lightMode = false;
 
@@ -1967,11 +2339,25 @@ let segments = [];
 let historyStack = [];   // array of JSON-serialised segment snapshots
 let redoStack    = [];
 let tool = 'wall', drawing = false, drawStart = null, drawPrev = null, hoverIdx = null;
+let screenPerm = '25';
+let screenPending = [];
+let _screenHighlight = false;
+let screenHighlightTimer = null;
+// Reference image layer (local only)
+let _images = [];
+let _imgElements = {};
+let _imgOrigSizes = {};
+let _imgDrag = null;
+const IMG_STORE_KEY = 'bem-ref-images';
+// IFC import
+let _ifcParsed = null;
 let selectedIdx = null;       // primary selected segment (for dim panel/drag anchor)
 let selectedSet = new Set();  // all selected segment indices
 let draggingSelected = false; // is the selected segment being dragged
+let _boxSel = null; // {x1,y1,x2,y2} — active box selection drag
 let dragOffset = null;        // {dx,dy} from click point to segment origin
 let dragOffsets = [];         // per-segment offsets for multi-drag
+let draggingEndpoint = null;  // {idx, which:'p1'|'p2'} — dragging a single endpoint handle
 let treePerm = 'high';
 let eraserSize = 20;
 let erasing = false;
@@ -1990,9 +2376,10 @@ Object.defineProperty(window, 'spawnLine', {
 
 // Permeability factors — how much wind passes through (0=fully blocked, 1=fully open)
 // High density foliage = most blocking = lowest permeability
-const PERM_FACTOR = { high: 0.10, med: 0.38, low: 0.72 };
+const PERM_FACTOR = { high: 0.10, med: 0.38, low: 0.72, scr25: 0.01, scr50: 0.15, scr75: 0.45 };
 // Obstacle values: 0=free, 1=solid wall, 2=tree-high, 3=tree-med, 4=tree-low
 const OBS_TREE_HIGH = 2, OBS_TREE_MED = 3, OBS_TREE_LOW = 4;
+const OBS_SCR_25 = 5, OBS_SCR_50 = 6, OBS_SCR_75 = 7; // permeable screen obs values
 
 // Zone measuring — multi-zone support
 let zones = [];           // [{points, name, avg, tagClass, tagText}]
@@ -2013,12 +2400,14 @@ let particles = [];
 // ════════════════════════════════════════════════
 //  CANVAS
 // ════════════════════════════════════════════════
+const cvImage = document.getElementById('cvs-image');
 const cvGrid  = document.getElementById('cvs-grid');
 const cvPres  = document.getElementById('cvs-pressure');
 const cvWalls = document.getElementById('cvs-walls');
 const cvParts = document.getElementById('cvs-particles');
 const cvZone  = document.getElementById('cvs-zone');
 const cvUI    = document.getElementById('cvs-interact');
+const ctxImage = cvImage.getContext('2d');
 const ctxGrid = cvGrid.getContext('2d');
 const ctxPres = cvPres.getContext('2d');
 const ctxWalls = cvWalls.getContext('2d');
@@ -2033,7 +2422,7 @@ function resize() {
   // Canvas = grid pixel size exactly
   canvasW = GW * CELL;
   canvasH = GH * CELL;
-  [cvGrid,cvPres,cvWalls,cvParts,cvZone,cvUI].forEach(cv => {
+  [cvImage,cvGrid,cvPres,cvWalls,cvParts,cvZone,cvUI].forEach(cv => {
     cv.width  = canvasW;
     cv.height = canvasH;
     cv.style.width  = canvasW + 'px';
@@ -2050,6 +2439,7 @@ function resize() {
   initArrays();
   buildObstacles();
   drawGridLines();
+  drawImageLayer();
   redrawWalls();
   positionCanvasOverlays();
 }
@@ -2082,6 +2472,44 @@ function buildObstacles() {
       rasterSeg(s.x2, s.y1, s.x2, s.y2, 1);
       rasterSeg(s.x2, s.y2, s.x1, s.y2, 1);
       rasterSeg(s.x1, s.y2, s.x1, s.y1, 1);
+    } else if (s.type === 'furn-rect') {
+      // Solid filled rectangle obstacle
+      const gx1=Math.floor(s.x1/CELL), gy1=Math.floor(s.y1/CELL);
+      const gx2=Math.floor(s.x2/CELL), gy2=Math.floor(s.y2/CELL);
+      for (let gy=gy1; gy<=gy2; gy++) for (let gx=gx1; gx<=gx2; gx++)
+        if (gx>=0&&gx<GW&&gy>=0&&gy<GH) obstacle[ci(gx,gy)] = 1;
+    } else if (s.type === 'furn-circ') {
+      const gcx=s.cx/CELL, gcy=s.cy/CELL, gr=s.r/CELL;
+      const x0=Math.floor(gcx-gr), x1=Math.ceil(gcx+gr);
+      const y0=Math.floor(gcy-gr), y1=Math.ceil(gcy+gr);
+      for (let gy=y0; gy<=y1; gy++) for (let gx=x0; gx<=x1; gx++) {
+        if (gx<0||gx>=GW||gy<0||gy>=GH) continue;
+        if (Math.hypot(gx-gcx, gy-gcy) <= gr) obstacle[ci(gx,gy)] = 1;
+      }
+    } else if (s.type === 'furn-poly') {
+      // Solid filled polygon obstacle — point-in-polygon per cell
+      const pts = [];
+      for (let k=0;k<s.sides;k++) {
+        const a = s.startAngle + (k/s.sides)*Math.PI*2;
+        pts.push({x:(s.cx+Math.cos(a)*s.r)/CELL, y:(s.cy+Math.sin(a)*s.r)/CELL});
+      }
+      const gr = s.r/CELL;
+      const gcx=s.cx/CELL, gcy=s.cy/CELL;
+      const gx0=Math.floor(gcx-gr), gx1=Math.ceil(gcx+gr);
+      const gy0=Math.floor(gcy-gr), gy1=Math.ceil(gcy+gr);
+      for (let gy=gy0; gy<=gy1; gy++) for (let gx=gx0; gx<=gx1; gx++) {
+        if (gx<0||gx>=GW||gy<0||gy>=GH) continue;
+        // Ray-cast point-in-polygon
+        let inside=false;
+        for (let i=0,j=pts.length-1;i<pts.length;j=i++) {
+          const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;
+          if (((yi>gy)!==(yj>gy))&&(gx<(xj-xi)*(gy-yi)/(yj-yi)+xi)) inside=!inside;
+        }
+        if (inside) obstacle[ci(gx,gy)] = 1;
+      }
+    } else if (s.type === 'screen') {
+      const obsVal = s.perm==='25' ? OBS_SCR_25 : s.perm==='50' ? OBS_SCR_50 : OBS_SCR_75;
+      rasterSeg(s.x1, s.y1, s.x2, s.y2, obsVal);
     } else if (s.type === 'tree') {
       const obsVal = s.perm==='high' ? OBS_TREE_HIGH : s.perm==='med' ? OBS_TREE_MED : OBS_TREE_LOW;
       rasterCircle(s.cx, s.cy, s.r, obsVal);
@@ -2094,20 +2522,33 @@ function buildObstacles() {
 }
 
 function rasterSeg(x1, y1, x2, y2, obsVal=1) {
+  // Convert pixel coords to grid cell indices.
+  // Use Math.floor so each pixel maps to the cell it physically falls inside.
   let gx = Math.floor(x1/CELL), gy = Math.floor(y1/CELL);
   const ex = Math.floor(x2/CELL), ey = Math.floor(y2/CELL);
-  const dx = Math.abs(ex-gx), dy = Math.abs(ey-gy);
+  const adx = Math.abs(ex-gx), ady = Math.abs(ey-gy);
   const sx = gx<ex?1:-1, sy = gy<ey?1:-1;
-  let err = dx - dy;
-  while (true) {
-    for (let oy=-1;oy<=1;oy++) for (let ox=-1;ox<=1;ox++) {
-      const nx=gx+ox, ny=gy+oy;
-      if (nx>=0&&nx<GW&&ny>=0&&ny<GH) obstacle[ci(nx,ny)] = obsVal;
+  let err = adx - ady;
+  // Pad perpendicular to the primary travel direction: 1 cell each side.
+  // For a horizontal wall (adx>=ady): pad in Y only → 1 above, 1 below.
+  // For a vertical wall (ady>adx):   pad in X only → 1 left,  1 right.
+  // For diagonal: pad both axes.
+  const padX = ady > adx ? 1 : 0;
+  const padY = adx >= ady ? 1 : 0;
+  function paint(cx, cy) {
+    for (let py=-padY; py<=padY; py++) {
+      for (let px=-padX; px<=padX; px++) {
+        const nx=cx+px, ny=cy+py;
+        if (nx>=0&&nx<GW&&ny>=0&&ny<GH) obstacle[ci(nx,ny)] = obsVal;
+      }
     }
+  }
+  while (true) {
+    paint(gx, gy);
     if (gx===ex&&gy===ey) break;
     const e2=2*err;
-    if (e2>-dy){err-=dy;gx+=sx;}
-    if (e2< dx){err+=dx;gy+=sy;}
+    if (e2>-ady){err-=ady;gx+=sx;}
+    if (e2< adx){err+=adx;gy+=sy;}
   }
 }
 
@@ -2196,7 +2637,11 @@ function solvePressure() {
 
         const selfPerm = obstacle[id]===0 ? 1.0 :
                          obstacle[id]===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                         obstacle[id]===OBS_TREE_MED  ? PERM_FACTOR.med  : PERM_FACTOR.low;
+                         obstacle[id]===OBS_TREE_MED  ? PERM_FACTOR.med  :
+                         obstacle[id]===OBS_TREE_LOW  ? PERM_FACTOR.low  :
+                         obstacle[id]===OBS_SCR_25    ? PERM_FACTOR.scr25 :
+                         obstacle[id]===OBS_SCR_50    ? PERM_FACTOR.scr50 :
+                         obstacle[id]===OBS_SCR_75    ? PERM_FACTOR.scr75 : PERM_FACTOR.low;
         const selfRes = 1.0 - selfPerm; // resistance: high-density tree = high resistance
 
         // Neighbour pressure transfer — tree neighbours partially block diffusion
@@ -2206,7 +2651,11 @@ function solvePressure() {
           // Tree neighbour: pressure passes through proportionally
           const nPerm = nobs===0 ? 1.0 :
                         nobs===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                        nobs===OBS_TREE_MED  ? PERM_FACTOR.med  : PERM_FACTOR.low;
+                        nobs===OBS_TREE_MED  ? PERM_FACTOR.med  :
+                        nobs===OBS_TREE_LOW  ? PERM_FACTOR.low  :
+                        nobs===OBS_SCR_25    ? PERM_FACTOR.scr25 :
+                        nobs===OBS_SCR_50    ? PERM_FACTOR.scr50 :
+                        nobs===OBS_SCR_75    ? PERM_FACTOR.scr75 : PERM_FACTOR.low;
           return pressure[id] * (1-nPerm) + pressure[nid] * nPerm;
         }
         let avg = (nP(x,y-1)+nP(x,y+1)+nP(x+1,y)+nP(x-1,y)) * 0.25;
@@ -2222,6 +2671,10 @@ function solvePressure() {
           else if (nobs===OBS_TREE_HIGH) resistance = 1.0 - PERM_FACTOR.high;
           else if (nobs===OBS_TREE_MED)  resistance = 1.0 - PERM_FACTOR.med;
           else if (nobs===OBS_TREE_LOW)  resistance = 1.0 - PERM_FACTOR.low;
+          // Screens: amplify source resistance to compensate for being only 1 cell thick
+          else if (nobs===OBS_SCR_25)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr25) * 5.0);
+          else if (nobs===OBS_SCR_50)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr50) * 3.5);
+          else if (nobs===OBS_SCR_75)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr75) * 2.0);
           if (resistance > 0.05) {
             src += proj * windSpd * resistance * (proj > 0 ? AP_srcWindward : AP_srcLeeward);
           }
@@ -2237,13 +2690,21 @@ function solvePressure() {
         if (obstacle[id]===1) { pressure[id]=0; continue; }
         const selfPerm = obstacle[id]===0 ? 1.0 :
                          obstacle[id]===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                         obstacle[id]===OBS_TREE_MED  ? PERM_FACTOR.med  : PERM_FACTOR.low;
+                         obstacle[id]===OBS_TREE_MED  ? PERM_FACTOR.med  :
+                         obstacle[id]===OBS_TREE_LOW  ? PERM_FACTOR.low  :
+                         obstacle[id]===OBS_SCR_25    ? PERM_FACTOR.scr25 :
+                         obstacle[id]===OBS_SCR_50    ? PERM_FACTOR.scr50 :
+                         obstacle[id]===OBS_SCR_75    ? PERM_FACTOR.scr75 : PERM_FACTOR.low;
         function nP2(nx2,ny2) {
           const nid=ci(nx2,ny2), nobs=obstacle[nid];
           if (nobs===1) return pressure[id];
           const nPerm = nobs===0 ? 1.0 :
                         nobs===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                        nobs===OBS_TREE_MED  ? PERM_FACTOR.med  : PERM_FACTOR.low;
+                        nobs===OBS_TREE_MED  ? PERM_FACTOR.med  :
+                        nobs===OBS_TREE_LOW  ? PERM_FACTOR.low  :
+                        nobs===OBS_SCR_25    ? PERM_FACTOR.scr25 :
+                        nobs===OBS_SCR_50    ? PERM_FACTOR.scr50 :
+                        nobs===OBS_SCR_75    ? PERM_FACTOR.scr75 : PERM_FACTOR.low;
           return pressure[id] * (1-nPerm) + pressure[nid] * nPerm;
         }
         let avg = (nP2(x,y-1)+nP2(x,y+1)+nP2(x+1,y)+nP2(x-1,y)) * 0.25;
@@ -2257,6 +2718,9 @@ function solvePressure() {
           else if (nobs2===OBS_TREE_HIGH) resistance = 1.0 - PERM_FACTOR.high;
           else if (nobs2===OBS_TREE_MED)  resistance = 1.0 - PERM_FACTOR.med;
           else if (nobs2===OBS_TREE_LOW)  resistance = 1.0 - PERM_FACTOR.low;
+          else if (nobs2===OBS_SCR_25)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr25) * 5.0);
+          else if (nobs2===OBS_SCR_50)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr50) * 3.5);
+          else if (nobs2===OBS_SCR_75)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr75) * 2.0);
           if (resistance > 0.05) src += proj * windSpd * resistance * (proj > 0 ? AP_srcWindward : AP_srcLeeward);
         }
         pressure[id] = pressure[id] + (avg + src - pressure[id]) * selfPerm;
@@ -2490,8 +2954,6 @@ function lerp(a,b,t){ return a+(b-a)*t; }
 // ════════════════════════════════════════════════
 function drawGridLines() {
   ctxGrid.clearRect(0,0,canvasW,canvasH);
-  ctxGrid.fillStyle = lightMode ? '#f0f2f5' : '#080a0f';
-  ctxGrid.fillRect(0,0,canvasW,canvasH);
 
   ctxGrid.save();
   if (zoomLevel > 1.0) {
@@ -2499,7 +2961,7 @@ function drawGridLines() {
   }
 
   // Canvas IS the grid — no outside-grid space at zoom=1
-  const majorCells = CELL === 8 ? 5 : 3;
+  const majorCells = CELL === 4 ? 8 : CELL === 8 ? 5 : 3;
   const majorPx    = CELL * majorCells;
   const cellM      = M_PER_PX * CELL;
   const rawBarM    = cellM * 5;
@@ -2544,7 +3006,8 @@ function drawGridLines() {
   ctxGrid.textAlign = 'center'; ctxGrid.fillText(`${barM} m`, bx+barPx/2, by-5);
   ctxGrid.textAlign = 'left';
   const zPct = Math.round((zoomLevel||1)*100);
-  ctxGrid.fillText(`${cellM.toFixed(2)} m/cell · ${CELL===8?'high':'low'} res · ${zPct}%`, bx+barPx+8, by+2);
+  const _resLbl = CELL===4?'ultra':CELL===8?'high':'low';
+  ctxGrid.fillText(`${cellM.toFixed(2)} m/cell · ${_resLbl} res · ${zPct}%`, bx+barPx+8, by+2);
 
   ctxGrid.restore(); // pop zoom transform
 
@@ -2673,14 +3136,30 @@ function drawVectorLayer() {
       const vx=velX[id], vy=velY[id];
       const spd=Math.hypot(vx,vy);
       if(spd<0.05)continue;
+      const nx=vx/spd, ny=vy/spd;
       const cx=gx*CELL+CELL/2, cy=gy*CELL+CELL/2;
       const len=Math.min(spd*4, CELL*2.5);
-      ctxParts.strokeStyle=speedColor(spd/(windSpd*0.4));
-      ctxParts.globalAlpha=0.45; ctxParts.lineWidth=0.8;
+      const col=speedColor(spd/(windSpd*0.4));
+      const ex=cx+nx*len, ey=cy+ny*len;
+      ctxParts.strokeStyle=col;
+      ctxParts.fillStyle=col;
+      ctxParts.globalAlpha=0.45;
+      ctxParts.lineWidth=0.8;
+      // Shaft
       ctxParts.beginPath();
       ctxParts.moveTo(cx,cy);
-      ctxParts.lineTo(cx+(vx/spd)*len, cy+(vy/spd)*len);
+      ctxParts.lineTo(ex,ey);
       ctxParts.stroke();
+      // Arrowhead — small triangle at tip
+      const hs=Math.min(len*0.38, CELL*0.9); // head size
+      const hw=hs*0.38; // half-width of base
+      const px=-ny, py=nx; // perpendicular
+      ctxParts.beginPath();
+      ctxParts.moveTo(ex, ey);
+      ctxParts.lineTo(ex - nx*hs + px*hw, ey - ny*hs + py*hw);
+      ctxParts.lineTo(ex - nx*hs - px*hw, ey - ny*hs - py*hw);
+      ctxParts.closePath();
+      ctxParts.fill();
     }
   }
   ctxParts.restore();
@@ -2753,6 +3232,91 @@ function redrawWalls() {
       if (sel) ctxWalls.setLineDash([6,3]);
       ctxWalls.strokeRect(s.x1,s.y1,s.x2-s.x1,s.y2-s.y1);
 
+    } else if (s.type==='furn-rect') {
+      const fc = sel ? '#ffffff' : hw ? '#e8c890' : (lightMode ? '#8a6830' : 'rgba(200,168,120,0.88)');
+      ctxWalls.fillStyle   = sel ? 'rgba(255,255,255,0.12)' : (lightMode ? 'rgba(138,104,48,0.25)' : 'rgba(200,168,120,0.18)');
+      ctxWalls.strokeStyle = fc;
+      ctxWalls.lineWidth   = sel ? 2 : hw ? 3 : 2;
+      ctxWalls.shadowColor = sel ? 'rgba(255,255,255,0.5)' : 'rgba(200,168,120,0.4)';
+      ctxWalls.shadowBlur  = sel ? 8 : hw ? 6 : 0;
+      if (sel) ctxWalls.setLineDash([5,3]);
+      ctxWalls.fillRect(s.x1,s.y1,s.x2-s.x1,s.y2-s.y1);
+      ctxWalls.strokeRect(s.x1,s.y1,s.x2-s.x1,s.y2-s.y1);
+      // Label
+      ctxWalls.setLineDash([]);
+      ctxWalls.font='bold 9px Space Mono, monospace';
+      ctxWalls.fillStyle = lightMode ? 'rgba(100,70,20,0.7)' : 'rgba(200,168,120,0.55)';
+      ctxWalls.textAlign='center'; ctxWalls.textBaseline='middle';
+      ctxWalls.shadowBlur=0;
+      ctxWalls.fillText('FURN', (s.x1+s.x2)/2, (s.y1+s.y2)/2);
+
+    } else if (s.type==='furn-circ') {
+      const fc = sel ? '#ffffff' : hw ? '#e8c890' : (lightMode ? '#8a6830' : 'rgba(200,168,120,0.88)');
+      ctxWalls.fillStyle   = sel ? 'rgba(255,255,255,0.12)' : (lightMode ? 'rgba(138,104,48,0.25)' : 'rgba(200,168,120,0.18)');
+      ctxWalls.strokeStyle = fc;
+      ctxWalls.lineWidth   = sel ? 2 : hw ? 3 : 2;
+      ctxWalls.shadowColor = sel ? 'rgba(255,255,255,0.5)' : 'rgba(200,168,120,0.4)';
+      ctxWalls.shadowBlur  = sel ? 8 : hw ? 6 : 0;
+      if (sel) ctxWalls.setLineDash([5,3]);
+      ctxWalls.beginPath(); ctxWalls.arc(s.cx, s.cy, s.r, 0, Math.PI*2);
+      ctxWalls.fill(); ctxWalls.stroke();
+      ctxWalls.setLineDash([]);
+      ctxWalls.font='bold 9px Space Mono, monospace';
+      ctxWalls.fillStyle = lightMode ? 'rgba(100,70,20,0.7)' : 'rgba(200,168,120,0.55)';
+      ctxWalls.textAlign='center'; ctxWalls.textBaseline='middle';
+      ctxWalls.shadowBlur=0;
+      ctxWalls.fillText('FURN', s.cx, s.cy);
+
+    } else if (s.type==='furn-poly') {
+      const fc = sel ? '#ffffff' : hw ? '#e8c890' : (lightMode ? '#8a6830' : 'rgba(200,168,120,0.88)');
+      ctxWalls.fillStyle   = sel ? 'rgba(255,255,255,0.12)' : (lightMode ? 'rgba(138,104,48,0.25)' : 'rgba(200,168,120,0.18)');
+      ctxWalls.strokeStyle = fc;
+      ctxWalls.lineWidth   = sel ? 2 : hw ? 3 : 2;
+      ctxWalls.shadowColor = sel ? 'rgba(255,255,255,0.5)' : 'rgba(200,168,120,0.4)';
+      ctxWalls.shadowBlur  = sel ? 8 : hw ? 6 : 0;
+      if (sel) ctxWalls.setLineDash([5,3]);
+      ctxWalls.beginPath();
+      for (let k=0; k<=s.sides; k++) {
+        const a = s.startAngle + (k/s.sides)*Math.PI*2;
+        if (k===0) ctxWalls.moveTo(s.cx+Math.cos(a)*s.r, s.cy+Math.sin(a)*s.r);
+        else       ctxWalls.lineTo(s.cx+Math.cos(a)*s.r, s.cy+Math.sin(a)*s.r);
+      }
+      ctxWalls.fill(); ctxWalls.stroke();
+      ctxWalls.setLineDash([]);
+      ctxWalls.font='bold 9px Space Mono, monospace';
+      ctxWalls.fillStyle = lightMode ? 'rgba(100,70,20,0.7)' : 'rgba(200,168,120,0.55)';
+      ctxWalls.textAlign='center'; ctxWalls.textBaseline='middle';
+      ctxWalls.shadowBlur=0;
+      ctxWalls.fillText('FURN', s.cx, s.cy);
+
+    } else if (s.type==='screen') {
+      const isHighlight = _screenHighlight;
+      const baseCol = s.perm==='25' ? 'rgba(100,160,220,0.9)' : s.perm==='50' ? 'rgba(120,180,240,0.9)' : 'rgba(160,210,255,0.9)';
+      ctxWalls.strokeStyle = sel ? '#ffffff' : hw ? '#c8e8ff' : baseCol;
+      ctxWalls.lineWidth   = sel ? 4 : hw ? 5 : isHighlight ? 5 : 3;
+      ctxWalls.setLineDash(s.perm==='25' ? [2,4] : s.perm==='50' ? [5,4] : [9,4]);
+      ctxWalls.shadowColor = isHighlight ? '#a0c8e8' : sel ? 'rgba(255,255,255,0.6)' : 'rgba(160,200,232,0.4)';
+      ctxWalls.shadowBlur  = isHighlight ? 16 : sel ? 10 : hw ? 6 : 3;
+      ctxWalls.beginPath(); ctxWalls.moveTo(s.x1,s.y1); ctxWalls.lineTo(s.x2,s.y2); ctxWalls.stroke();
+      ctxWalls.setLineDash([]);
+      // Label parallel to the line, at midpoint
+      const _sdx = s.x2-s.x1, _sdy = s.y2-s.y1;
+      const _slen = Math.hypot(_sdx, _sdy);
+      if (_slen > 20) {
+        ctxWalls.save();
+        ctxWalls.translate((s.x1+s.x2)/2, (s.y1+s.y2)/2);
+        let _ang = Math.atan2(_sdy, _sdx);
+        if (_ang > Math.PI/2 || _ang < -Math.PI/2) _ang += Math.PI;
+        ctxWalls.rotate(_ang);
+        ctxWalls.font = 'bold 8px Space Mono, monospace';
+        ctxWalls.fillStyle = isHighlight ? '#ffffff' : baseCol;
+        ctxWalls.textAlign = 'center'; ctxWalls.textBaseline = 'bottom';
+        ctxWalls.shadowBlur = isHighlight ? 8 : 0;
+        ctxWalls.shadowColor = baseCol;
+        ctxWalls.fillText(s.perm + '% permeable', 0, -4);
+        ctxWalls.restore();
+      }
+
     } else if (s.type==='opening') {
       ctxWalls.strokeStyle = sel ? '#ffffff' : hw ? (lightMode?'#006644':'#7affd8') : (lightMode?'#008855':'rgba(61,232,176,0.85)');
       ctxWalls.lineWidth = sel ? 4 : hw?4:3;
@@ -2808,6 +3372,15 @@ function redrawWalls() {
       ctxWalls.globalAlpha=1;
       const lenM = px2m(Math.hypot(drawPrev.x-drawStart.x, drawPrev.y-drawStart.y));
       drawDimLabel(ctxWalls, drawStart.x, drawStart.y, drawPrev.x, drawPrev.y, `${lenM} m`, 1);
+    } else if (tool==='screen') {
+      const sCol = screenPerm==='25' ? 'rgba(100,160,220,1)' : screenPerm==='50' ? 'rgba(120,180,240,1)' : 'rgba(160,210,255,1)';
+      ctxWalls.strokeStyle=sCol; ctxWalls.lineWidth=3;
+      ctxWalls.setLineDash(screenPerm==='25' ? [2,4] : screenPerm==='50' ? [5,4] : [9,4]);
+      ctxWalls.beginPath(); ctxWalls.moveTo(drawStart.x,drawStart.y); ctxWalls.lineTo(drawPrev.x,drawPrev.y); ctxWalls.stroke();
+      ctxWalls.setLineDash([]);
+      ctxWalls.globalAlpha=1;
+      const scrLenM = px2m(Math.hypot(drawPrev.x-drawStart.x, drawPrev.y-drawStart.y));
+      drawDimLabel(ctxWalls, drawStart.x, drawStart.y, drawPrev.x, drawPrev.y, `${scrLenM} m · ${screenPerm}%`, 1);
     } else if (tool==='wall') {
       ctxWalls.strokeStyle='rgba(155,172,208,1)'; ctxWalls.lineWidth=4;
       ctxWalls.beginPath(); ctxWalls.moveTo(drawStart.x,drawStart.y); ctxWalls.lineTo(drawPrev.x,drawPrev.y); ctxWalls.stroke();
@@ -2846,9 +3419,25 @@ function redrawWalls() {
       ctxWalls.globalAlpha=1;
       const rM = px2m(r);
       drawDimLabel(ctxWalls, drawStart.x, drawStart.y, drawStart.x+r, drawStart.y, `r=${rM} m`, -1);
+    } else if (tool==='furn') {
+      const fw = drawPrev.x-drawStart.x, fh = drawPrev.y-drawStart.y;
+      ctxWalls.globalAlpha = 0.7;
+      ctxWalls.strokeStyle = 'rgba(200,168,120,1)';
+      ctxWalls.fillStyle   = 'rgba(200,168,120,0.15)';
+      ctxWalls.lineWidth   = 2.5;
+      ctxWalls.fillRect(drawStart.x, drawStart.y, fw, fh);
+      ctxWalls.strokeRect(drawStart.x, drawStart.y, fw, fh);
+      ctxWalls.globalAlpha = 1;
+      const wM = px2m(Math.abs(fw)), hM = px2m(Math.abs(fh));
+      const x1=Math.min(drawStart.x,drawPrev.x), y1=Math.min(drawStart.y,drawPrev.y);
+      const x2=Math.max(drawStart.x,drawPrev.x), y2=Math.max(drawStart.y,drawPrev.y);
+      drawDimLabel(ctxWalls, x1, y1, x2, y1, `${wM} m`, -1);
+      drawDimLabel(ctxWalls, x2, y1, x2, y2, `${hM} m`,  1);
     }
     ctxWalls.restore();
   }
+
+  // ── Screen preview while drawing (same as wall) ──
 
   // ── Eraser brush preview ──
   if (tool==='eraser' && eraserMousePos) {
@@ -2941,7 +3530,7 @@ function redrawWalls() {
     drawSpawnPolyline([drawStart, drawPrev], 0.5, true);
   }
 
-  document.getElementById('s-walls').textContent = segments.filter(s=>s.type==='wall'||s.type==='rect').length;
+  document.getElementById('s-walls').textContent = segments.filter(s=>s.type==='wall'||s.type==='rect'||s.type==='furn-rect'||s.type==='furn-circ'||s.type==='furn-poly'||s.type==='screen').length;
   document.getElementById('s-opens').textContent = segments.filter(s=>s.type==='opening').length;
 
   // ── Dimension labels ──
@@ -2969,8 +3558,11 @@ function redrawWalls() {
 
   updateDimPanel();
   popZoom(ctxWalls);
+  // Box selection overlay
+  if (_boxSel) _drawBoxSelOnCanvas(ctxWalls);
   // Redraw zones so selection highlight stays in sync
   if (tool === 'select') drawZone();
+  drawEndpointHandles();
 }
 
 function drawTree(ctx, s, hovered) {
@@ -3014,6 +3606,26 @@ function drawTree(ctx, s, hovered) {
   ctx.restore();
 }
 
+function drawEndpointHandles() {
+  if (tool !== 'select' || selectedSet.size !== 1 || selectedIdx === null) return;
+  const s = segments[selectedIdx];
+  if (!s || (s.type !== 'wall' && s.type !== 'opening' && s.type !== 'screen')) return;
+  // Use same transform as redrawWalls — pushZoom only applies setTransform at zoom>1,
+  // at zoom<=1 the canvas-wrap CSS scale handles it and ctx draws at 1:1.
+  [[s.x1,s.y1,'p1'],[s.x2,s.y2,'p2']].forEach(([hx,hy,which]) => {
+    pushZoom(ctxWalls);
+    ctxWalls.fillStyle   = which === 'p1' ? '#3de8b0' : '#f0a832';
+    ctxWalls.strokeStyle = '#080a0f';
+    ctxWalls.lineWidth   = 1.5 / zoomLevel;
+    ctxWalls.shadowColor = ctxWalls.fillStyle;
+    ctxWalls.shadowBlur  = 6;
+    const r = 6 / (zoomLevel > 1 ? zoomLevel : 1);
+    ctxWalls.beginPath(); ctxWalls.arc(hx, hy, r, 0, Math.PI*2);
+    ctxWalls.fill(); ctxWalls.stroke();
+    popZoom(ctxWalls);
+  });
+}
+
 function speedColor(t) {
   t=Math.max(0,Math.min(1,t));
   let r,g,b;
@@ -3037,9 +3649,13 @@ function simLoop(now) {
   if (simPaused) return;
   perfTick(now);
   const t0 = performance.now();
-  solvePressure();
-  computeVelocity();
-  stepParticles();
+  // Run multiple sub-steps for time-scale > 1
+  const steps = Math.round(simTimeScale);
+  for (let _i = 0; _i < steps; _i++) {
+    solvePressure();
+    computeVelocity();
+    stepParticles();
+  }
   perfStepMs = performance.now() - t0;
   drawPressureField();
   drawParticleLayer();
@@ -3096,6 +3712,20 @@ function togglePause() {
 const SN=8;
 function sn(v){return Math.round(v/SN)*SN;}
 
+// Snap endpoint to nearest 45° increment from a start point when Shift is held
+function shiftSnap(sx, sy, ex, ey) {
+  const dx = ex - sx, dy = ey - sy;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return {x: ex, y: ey};
+  // Find nearest 45° angle: 0, 45, 90, 135, 180, 225, 270, 315
+  const ang = Math.atan2(dy, dx);
+  const snapped = Math.round(ang / (Math.PI / 4)) * (Math.PI / 4);
+  return {
+    x: Math.round(sx + Math.cos(snapped) * len),
+    y: Math.round(sy + Math.sin(snapped) * len)
+  };
+}
+
 let eraserMousePos = null;
 let spawnDragPt = null;
 let spawnPendingPoly = [];
@@ -3103,6 +3733,7 @@ let lastPointerPos = {x:0, y:0};
 let selectedZoneIdx  = null;   // zone selected in select tool
 let draggingZone     = false;
 let zoneDragOffsets  = [];     // [{dx,dy}] per zone point
+let draggingZoneVertex = null; // {zi, vi} — dragging single vertex
 
 cvUI.addEventListener('mousedown', e=>{
   // Ignore middle mouse (pan) and shift+right click (pan) — handled by canvas-area listener
@@ -3112,6 +3743,8 @@ cvUI.addEventListener('mousedown', e=>{
   Object.defineProperty(e,'offsetX',{value:ox,configurable:true});
   Object.defineProperty(e,'offsetY',{value:oy,configurable:true});
   lastPointerPos = {x:ox, y:oy};
+  // Image layer — check for image hit before any tool handling (left click only)
+  if (e.button === 0 && tryImgMouseDown(ox, oy)) return;
   // Block drawing outside the defined grid area (allow select/eraser anywhere for cleanup)
   const gridPxW = GW*CELL, gridPxH = GH*CELL;
   const inGrid = ox >= 0 && ox <= gridPxW && oy >= 0 && oy <= gridPxH;
@@ -3119,17 +3752,44 @@ cvUI.addEventListener('mousedown', e=>{
   if (e.button===2){
     e.stopPropagation();
 
-    const i = hitTest(e.offsetX, e.offsetY);
+    // Check for image hit first
+    const imgHit = imgHitTest(ox, oy);
+    if (imgHit) {
+      _selectedImageId = imgHit.id;
+      drawImageLayer();
+      openImageManager();
+      const hitImg = _images.find(i => i.id === imgHit.id);
+      document.getElementById('img-ctx-lock-lbl').textContent = hitImg?.locked ? 'Unlock Image' : 'Lock Image';
+      _imgCtxTargetId = imgHit.id;
+      showImgCtxMenu(e.clientX, e.clientY);
+      return;
+    }
+
+    const i = hitTest(ox, oy);
 
     if (i !== null) {
-      // Object hit — switch to select, select it, show full menu
       setTool('select');
       selectedIdx = i;
       selectedSet.clear(); selectedSet.add(i);
       ctxTargetIdx = i;
       draggingSelected = false;
       redrawWalls();
-      // Show/hide items based on context
+
+      // Tree gets its own context menu
+      if (segments[i].type === 'tree') {
+        treeCtxIdx = i;
+        const pasteItem = document.getElementById('tree-ctx-paste');
+        pasteItem.classList.toggle('disabled', clipboard === null);
+        // Highlight current density
+        ['high','med','low'].forEach(d => {
+          const el = document.querySelector(`[onclick="treeCtxAction('density-${d}')"]`);
+          if (el) el.style.fontWeight = segments[i].perm === d ? '700' : '400';
+        });
+        showTreeCtxMenu(e.clientX, e.clientY);
+        return;
+      }
+
+      // Non-tree segment — show standard menu
       document.getElementById('ctx-copy').style.display   = 'flex';
       document.getElementById('ctx-sep-del').style.display = 'block';
       document.getElementById('ctx-delete').style.display  = 'flex';
@@ -3170,6 +3830,14 @@ cvUI.addEventListener('mousedown', e=>{
       }
     }
 
+    // Check endpoint handles FIRST (highest priority for single selection)
+    const epHit = endpointHitTest(mx, my);
+    if (epHit) {
+      draggingEndpoint = { idx: selectedIdx, which: epHit };
+      snapshotSegments();
+      return;
+    }
+
     const i = hitTest(mx, my);
     if (i !== null) {
       if (e.ctrlKey || e.metaKey) {
@@ -3193,7 +3861,8 @@ cvUI.addEventListener('mousedown', e=>{
         snapshotSegments();
         dragOffsets = [...selectedSet].map(idx => {
           const s = segments[idx];
-          return (s.type==='tree' || s.type==='arc' || s.type==='poly')
+
+          return (s.type==='tree' || s.type==='arc' || s.type==='poly' || s.type==='furn-circ' || s.type==='furn-poly')
             ? {idx, dx: mx-s.cx, dy: my-s.cy}
             : {idx, dx: mx-s.x1, dy: my-s.y1};
         });
@@ -3205,12 +3874,22 @@ cvUI.addEventListener('mousedown', e=>{
       if (zi !== null) {
         selectedZoneIdx = zi;
         selectedSet.clear(); selectedIdx = null;
-        draggingZone = true;
-        zoneDragOffsets = zones[zi].points.map(p => ({dx: mx-p.x, dy: my-p.y}));
+        // Check if clicking near a vertex handle (drag vertex only)
+        const vHit = zones[zi].points.findIndex(p => Math.hypot(p.x-mx,p.y-my) < 10);
+        if (vHit >= 0) {
+          draggingZoneVertex = { zi, vi: vHit };
+          draggingZone = false;
+          snapshotSegments();
+        } else {
+          draggingZone = true;
+          zoneDragOffsets = zones[zi].points.map(p => ({dx: mx-p.x, dy: my-p.y}));
+        }
       } else {
-        // 3. Empty click — clear all selection
+        // 3. Empty click — start box selection drag, or clear selection
         if (!(e.ctrlKey || e.metaKey)) {
           selectedSet.clear(); selectedIdx = null; selectedZoneIdx = null;
+          // Start box selection
+          _boxSel = { x1: mx, y1: my, x2: mx, y2: my };
         }
         draggingSelected = false; draggingZone = false;
       }
@@ -3257,6 +3936,7 @@ cvUI.addEventListener('click', e=>{
   const {x:ox,y:oy} = screenToWorld(e.offsetX, e.offsetY);
   Object.defineProperty(e,'offsetX',{value:ox,configurable:true});
   Object.defineProperty(e,'offsetY',{value:oy,configurable:true});
+
   // Spawn poly mode — click to add points, double-click to commit
   if (tool==='spawn' && spawnPolyMode==='poly') {
     if (e.detail===2) {
@@ -3295,6 +3975,17 @@ cvUI.addEventListener('click', e=>{
 
 cvUI.addEventListener('mousemove', e=>{
   if (_panning) return; // pan is handled by document mousemove
+  if (_imgDragState) {
+    const {x:mx,y:my} = screenToWorld(e.offsetX, e.offsetY);
+    tryImgMouseMove(mx, my); return;
+  }
+  // Box selection update
+  if (_boxSel && tool === 'select') {
+    const {x:mx,y:my} = screenToWorld(e.offsetX, e.offsetY);
+    _boxSel.x2 = mx; _boxSel.y2 = my;
+    _updateBoxSelRect();
+    return;
+  }
   const {x:ox,y:oy} = screenToWorld(e.offsetX, e.offsetY);
   Object.defineProperty(e,'offsetX',{value:ox,configurable:true});
   Object.defineProperty(e,'offsetY',{value:oy,configurable:true});
@@ -3316,7 +4007,15 @@ cvUI.addEventListener('mousemove', e=>{
       const overHandle = spawnHandleHitTest(e.offsetX, e.offsetY) >= 0;
       cvUI.style.cursor = overHandle ? 'grab' : 'crosshair';
     }
-    if(drawing){drawPrev={x:e.offsetX,y:e.offsetY};redrawWalls();}
+    if(drawing){
+      let spx = e.offsetX, spy = e.offsetY;
+      if (e.shiftKey && drawStart && spawnPolyMode==='line') {
+        const s = shiftSnap(drawStart.x, drawStart.y, spx, spy);
+        spx = s.x; spy = s.y;
+      }
+      drawPrev = {x:spx, y:spy};
+      redrawWalls();
+    }
     return;
   }
   if(tool==='zone'){
@@ -3336,6 +4035,11 @@ cvUI.addEventListener('mousemove', e=>{
     }
 
     // B. Dragging a zone
+    if (draggingZoneVertex) {
+      const {zi, vi} = draggingZoneVertex;
+      zones[zi].points[vi] = {x: mx, y: my};
+      drawZone(); return;
+    }
     if (draggingZone && selectedZoneIdx !== null && zoneDragOffsets.length) {
       zones[selectedZoneIdx].points = zoneDragOffsets.map(({dx,dy}) => ({x:mx-dx, y:my-dy}));
       drawZone();
@@ -3344,6 +4048,18 @@ cvUI.addEventListener('mousemove', e=>{
     }
 
     // C. Dragging segments
+    // Endpoint drag
+    if (draggingEndpoint) {
+      const s = segments[draggingEndpoint.idx];
+      if (s) {
+        if (draggingEndpoint.which === 'p1') { s.x1 = mx; s.y1 = my; }
+        else                                 { s.x2 = mx; s.y2 = my; }
+        if (simRunning) buildObstacles();
+        redrawWalls();
+      }
+      return;
+    }
+
     if (draggingSelected && dragOffsets.length > 0) {
       dragOffsets.forEach(({idx, dx, dy}) => {
         const s = segments[idx];
@@ -3352,7 +4068,9 @@ cvUI.addEventListener('mousemove', e=>{
           s.cx=nx; s.cy=ny;
         } else {
           const ddx=nx-s.x1, ddy=ny-s.y1;
-          s.x1+=ddx; s.y1+=ddy; s.x2+=ddx; s.y2+=ddy;
+          if (s.type==='furn-circ' || s.type==='furn-poly') { s.cx+=ddx; s.cy+=ddy; }
+
+          else { s.x1+=ddx; s.y1+=ddy; s.x2+=ddx; s.y2+=ddy; }
         }
       });
       if (simRunning) buildObstacles();
@@ -3370,11 +4088,26 @@ cvUI.addEventListener('mousemove', e=>{
     redrawWalls();
     return;
   }
-  if(drawing){drawPrev={x:sn(e.offsetX),y:sn(e.offsetY)};redrawWalls();}
+  if(drawing){
+    let dpx = sn(e.offsetX), dpy = sn(e.offsetY);
+    // Shift: snap to 45° increments for wall, opening, and spawn line tools
+    if (e.shiftKey && drawStart && (tool==='wall'||tool==='opening'||tool==='screen')) {
+      const s = shiftSnap(drawStart.x, drawStart.y, dpx, dpy);
+      dpx = s.x; dpy = s.y;
+    }
+    drawPrev = {x:dpx, y:dpy};
+    redrawWalls();
+  }
 });
 
 cvUI.addEventListener('mouseup', e=>{
   if (_panning) return; // pan release handled by document mouseup
+  if (tryImgMouseUp()) return;
+  // Commit box selection
+  if (_boxSel && tool === 'select') {
+    _commitBoxSelection();
+    return;
+  }
   const {x:ox,y:oy} = screenToWorld(e.offsetX, e.offsetY);
   Object.defineProperty(e,'offsetX',{value:ox,configurable:true});
   Object.defineProperty(e,'offsetY',{value:oy,configurable:true});
@@ -3386,12 +4119,21 @@ cvUI.addEventListener('mouseup', e=>{
       redrawWalls(); return;
     }
     // Release zone drag
+    if (draggingZoneVertex) {
+      draggingZoneVertex = null;
+      triggerAutoSave();
+    }
     if (draggingZone) {
       draggingZone = false;
       zoneDragOffsets = [];
       drawZone(); return;
     }
     // Release segment drag
+    if (draggingEndpoint) {
+      draggingEndpoint = null;
+      triggerAutoSave();
+      return;
+    }
     if (draggingSelected) {
       draggingSelected = false;
       dragOffset = null; dragOffsets = [];
@@ -3414,8 +4156,13 @@ cvUI.addEventListener('mouseup', e=>{
     }
     // Line segment mode — commit on mouseup
     if(!drawing) return; drawing=false;
-    const ex = e.offsetX || lastPointerPos.x;
-    const ey = e.offsetY || lastPointerPos.y;
+    let ex = e.offsetX || lastPointerPos.x;
+    let ey = e.offsetY || lastPointerPos.y;
+    // Apply shift snap
+    if (e.shiftKey && drawStart) {
+      const _ss = shiftSnap(drawStart.x, drawStart.y, ex, ey);
+      ex = _ss.x; ey = _ss.y;
+    }
     if(Math.hypot(ex-drawStart.x,ey-drawStart.y)>8){
       spawnPoints=[{x:drawStart.x,y:drawStart.y},{x:ex,y:ey}];
       spawnMode='line';
@@ -3437,10 +4184,21 @@ cvUI.addEventListener('mouseup', e=>{
     drawPrev=null; drawZone(); return;
   }
   if(!drawing)return; drawing=false;
-  const ex=sn(e.offsetX || lastPointerPos.x), ey=sn(e.offsetY || lastPointerPos.y);
+  let ex=sn(e.offsetX || lastPointerPos.x), ey=sn(e.offsetY || lastPointerPos.y);
 
+  // Apply shift snap to wall and opening on commit
+  if (e.shiftKey && drawStart && (tool==='wall'||tool==='opening'||tool==='screen')) {
+    const _s = shiftSnap(drawStart.x, drawStart.y, ex, ey);
+    ex = _s.x; ey = _s.y;
+  }
   let added = false;
-  if(tool==='wall'){
+  if(tool==='screen'){
+    if(Math.hypot(ex-drawStart.x,ey-drawStart.y)>8){
+      snapshotSegments();
+      segments.push({x1:drawStart.x,y1:drawStart.y,x2:ex,y2:ey,type:'screen',perm:screenPerm}); added=true;
+      flashHint(`✓ Screen added — ${screenPerm}% permeable · [Y] to cycle`);
+    }
+  } else if(tool==='wall'){
     if(Math.hypot(ex-drawStart.x,ey-drawStart.y)>8){
       snapshotSegments();
       segments.push({x1:drawStart.x,y1:drawStart.y,x2:ex,y2:ey,type:'wall'}); added=true;
@@ -3467,6 +4225,12 @@ cvUI.addEventListener('mouseup', e=>{
       snapshotSegments();
       segments.push({cx:drawStart.x,cy:drawStart.y,r,startAngle,sweep:arcSweep,type:'arc'}); added=true;
     }
+  } else if(tool==='furn'){
+    if(Math.abs(ex-drawStart.x)>6&&Math.abs(ey-drawStart.y)>6){
+      snapshotSegments();
+      segments.push({x1:Math.min(drawStart.x,ex),y1:Math.min(drawStart.y,ey),
+                     x2:Math.max(drawStart.x,ex),y2:Math.max(drawStart.y,ey),type:'furn-rect'}); added=true;
+    }
   } else if(tool==='poly'){
     const r=Math.hypot(ex-drawStart.x,ey-drawStart.y);
     if(r>8){
@@ -3483,7 +4247,7 @@ cvUI.addEventListener('mouseup', e=>{
 cvUI.addEventListener('mouseleave',()=>{
   drawing=false; erasing=false; drawPrev=null; hoverIdx=null;
   eraserMousePos=null; draggingSelected=false; dragOffset=null; dragOffsets=[];
-  spawnDragPt=null; draggingZone=false; zoneDragOffsets=[];
+  spawnDragPt=null; draggingZone=false; zoneDragOffsets=[]; draggingZoneVertex=null; draggingEndpoint=null; _imgDragState=null; _boxSel=null; 
   redrawWalls();
 });
 cvUI.addEventListener('contextmenu', e => e.preventDefault());
@@ -3885,6 +4649,23 @@ function hitTest(mx,my){
         [s.x2,s.y2,s.x1,s.y2],[s.x1,s.y2,s.x1,s.y1]
       ];
       if(sides.some(([ax,ay,bx,by])=>distPS(mx,my,ax,ay,bx,by)<9)) return i;
+    } else if(s.type==='furn-rect') {
+      if(mx>=s.x1&&mx<=s.x2&&my>=s.y1&&my<=s.y2) return i;
+    } else if(s.type==='furn-circ') {
+      if(Math.hypot(s.cx-mx,s.cy-my)<s.r) return i;
+    } else if(s.type==='furn-poly') {
+      // Point-in-polygon for furniture polygon
+      let inside=false;
+      for(let k=0,j=s.sides-1;k<s.sides;j=k++){
+        const a1=s.startAngle+(k/s.sides)*Math.PI*2;
+        const a2=s.startAngle+(j/s.sides)*Math.PI*2;
+        const xi=s.cx+Math.cos(a1)*s.r, yi=s.cy+Math.sin(a1)*s.r;
+        const xj=s.cx+Math.cos(a2)*s.r, yj=s.cy+Math.sin(a2)*s.r;
+        if(((yi>my)!==(yj>my))&&(mx<(xj-xi)*(my-yi)/(yj-yi)+xi)) inside=!inside;
+      }
+      if(inside) return i;
+    } else if(s.type==='screen') {
+      if(distPS(mx,my,s.x1,s.y1,s.x2,s.y2)<9) return i;
     } else {
       if(distPS(mx,my,s.x1,s.y1,s.x2,s.y2)<9) return i;
     }
@@ -3913,6 +4694,16 @@ function zoneHitTest(mx, my) {
   for (let zi=zones.length-1; zi>=0; zi--) {
     if (pointInZone(mx, my, zones[zi].points)) return zi;
   }
+  return null;
+}
+
+function endpointHitTest(mx, my) {
+  // Returns {which:'p1'|'p2'} or null
+  if (tool !== 'select' || selectedSet.size !== 1 || selectedIdx === null) return null;
+  const s = segments[selectedIdx];
+  if (!s || (s.type !== 'wall' && s.type !== 'opening' && s.type !== 'screen')) return null;
+  if (Math.hypot(s.x1-mx, s.y1-my) < 10) return 'p1';
+  if (Math.hypot(s.x2-mx, s.y2-my) < 10) return 'p2';
   return null;
 }
 
@@ -3945,9 +4736,102 @@ function hideCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('show');
 }
 
+// ── Tree context menu ─────────────────────────────────────────────────────────
+let treeCtxIdx = null;
+
+function showTreeCtxMenu(cx, cy) {
+  hideCtxMenu();
+  const menu = document.getElementById('tree-ctx-menu');
+  menu.style.left = cx + 'px';
+  menu.style.top  = cy + 'px';
+  menu.classList.add('show');
+  const r = menu.getBoundingClientRect();
+  if (r.right  > window.innerWidth)  menu.style.left = (cx - r.width)  + 'px';
+  if (r.bottom > window.innerHeight) menu.style.top  = (cy - r.height) + 'px';
+}
+
+function hideTreeCtxMenu() {
+  document.getElementById('tree-ctx-menu').classList.remove('show');
+}
+
+function treeCtxAction(action) {
+  hideTreeCtxMenu();
+  const i = treeCtxIdx;
+  if (i === null || i >= segments.length) return;
+  const s = segments[i];
+  if (!s || s.type !== 'tree') return;
+
+  if (action.startsWith('density-')) {
+    const perm = action.replace('density-','');
+    snapshotSegments();
+    s.perm = perm;
+    if (simRunning) buildObstacles();
+    redrawWalls();
+    triggerAutoSave();
+    flashHint('✓ Tree density: ' + perm);
+  } else if (action === 'copy') {
+    clipboard = JSON.parse(JSON.stringify(s));
+    flashHint('✓ Tree copied');
+  } else if (action === 'paste') {
+    if (!clipboard) return;
+    snapshotSegments();
+    const copy = JSON.parse(JSON.stringify(clipboard));
+    copy.cx += 20; copy.cy += 20;
+    segments.push(copy);
+    if (simRunning) buildObstacles();
+    redrawWalls();
+    triggerAutoSave();
+    flashHint('✓ Pasted');
+  } else if (action === 'delete') {
+    snapshotSegments();
+    segments.splice(i, 1);
+    selectedSet.clear(); selectedIdx = null;
+    if (simRunning) buildObstacles();
+    redrawWalls();
+    triggerAutoSave();
+    flashHint('✓ Tree deleted');
+  }
+  treeCtxIdx = null;
+}
+
+// Close tree ctx menu on outside click
+document.addEventListener('mousedown', e => {
+  if (!document.getElementById('tree-ctx-menu').contains(e.target))
+    hideTreeCtxMenu();
+});
+
+
+
+
+function convertSelectedSegment() {
+  if (selectedIdx === null || selectedIdx >= segments.length) return;
+  const s = segments[selectedIdx];
+  if (!s || (s.type !== 'wall' && s.type !== 'opening' && s.type !== 'screen')) return;
+  snapshotSegments();
+  s.type = s.type === 'wall' ? 'opening' : 'wall';
+  if (simRunning) buildObstacles();
+  redrawWalls();
+  updateDimPanel();
+  triggerAutoSave();
+  flashHint('✓ Converted to ' + s.type);
+}
 function ctxAction(action) {
   hideCtxMenu();
   const i = ctxTargetIdx;
+  if (action === 'convert') {
+    if (i === null || i >= segments.length) return;
+    const seg = segments[i];
+    if (seg && (seg.type === 'wall' || seg.type === 'opening')) {
+      snapshotSegments();
+      seg.type = seg.type === 'wall' ? 'opening' : 'wall';
+      if (simRunning) buildObstacles();
+      redrawWalls();
+      updateDimPanel();
+      triggerAutoSave();
+      flashHint('✓ Converted to ' + seg.type);
+    }
+    return;
+  }
   if (action === 'delete') {
     if (i === null || i >= segments.length) return;
     snapshotSegments();
@@ -4386,12 +5270,14 @@ function updateDimPanel() {
     let html = '';
     if (s.type === 'wall' || s.type === 'opening') {
       const lenM = px2m(Math.hypot(s.x2-s.x1, s.y2-s.y1));
+      const otherType = s.type === 'wall' ? 'Opening' : 'Wall';
       html = `<div class="dim-field-row">
           <span class="dim-field-lbl">Length</span>
           <input class="dim-field-inp" type="number" step="0.1" value="${lenM}" onchange="applyDim('len',+this.value)">
           <span class="dim-field-unit">m</span>
         </div>
-        <div class="dim-multi-note">Start: (${px2m(s.x1)}m, ${px2m(s.y1)}m)<br>End: (${px2m(s.x2)}m, ${px2m(s.y2)}m)</div>`;
+        <div class="dim-multi-note">Start: (${px2m(s.x1)}m, ${px2m(s.y1)}m)<br>End: (${px2m(s.x2)}m, ${px2m(s.y2)}m)</div>
+        <button onclick="convertSelectedSegment()" style="margin-top:8px;width:100%;padding:5px 8px;background:var(--panel);border:1px solid var(--border2);border-radius:4px;color:var(--accent);font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border2)'">⇄ Convert to ${otherType}</button>`;
     } else if (s.type === 'rect') {
       const wM = px2m(Math.abs(s.x2-s.x1)), hM = px2m(Math.abs(s.y2-s.y1));
       html = `<div class="dim-field-row">
@@ -4429,6 +5315,35 @@ function updateDimPanel() {
           <span class="dim-field-unit">m</span>
         </div>
         <div class="dim-multi-note">${s.sides} sides · Side: ${px2m((2*s.r*Math.sin(Math.PI/s.sides)).toFixed(2))} m</div>`;
+    } else if (s.type === 'furn-rect') {
+      const wM = px2m(Math.abs(s.x2-s.x1)), hM = px2m(Math.abs(s.y2-s.y1));
+      html = `<div class="dim-field-row">
+          <span class="dim-field-lbl">Width</span>
+          <input class="dim-field-inp" type="number" step="0.1" value="${wM}" onchange="applyDim('w',+this.value)">
+          <span class="dim-field-unit">m</span>
+        </div>
+        <div class="dim-field-row">
+          <span class="dim-field-lbl">Height</span>
+          <input class="dim-field-inp" type="number" step="0.1" value="${hM}" onchange="applyDim('h',+this.value)">
+          <span class="dim-field-unit">m</span>
+        </div>
+        <div class="dim-multi-note">Area: ${(wM*hM).toFixed(2)} m² · Solid obstacle</div>`;
+    } else if (s.type === 'furn-circ') {
+      const rM = px2m(s.r);
+      html = `<div class="dim-field-row">
+          <span class="dim-field-lbl">Radius</span>
+          <input class="dim-field-inp" type="number" step="0.1" value="${rM}" onchange="applyDim('r',+this.value)">
+          <span class="dim-field-unit">m</span>
+        </div>
+        <div class="dim-multi-note">⌀ ${px2m(s.r*2)} m · Solid circular obstacle</div>`;
+    } else if (s.type === 'furn-poly') {
+      const rM = px2m(s.r);
+      html = `<div class="dim-field-row">
+          <span class="dim-field-lbl">Radius</span>
+          <input class="dim-field-inp" type="number" step="0.1" value="${rM}" onchange="applyDim('r',+this.value)">
+          <span class="dim-field-unit">m</span>
+        </div>
+        <div class="dim-multi-note">${s.sides}-sided polygon · Solid obstacle</div>`;
     }
     body.innerHTML = html;
   }
@@ -4466,11 +5381,11 @@ function applyDim(dim, val) {
     const newPx = m2px(val);
     const scale = newPx / oldLen;
     s.x2 = s.x1 + dx*scale; s.y2 = s.y1 + dy*scale;
-  } else if (dim === 'w' && s.type==='rect') {
+  } else if (dim === 'w' && (s.type==='rect' || s.type==='furn-rect')) {
     s.x2 = s.x1 + m2px(val);
-  } else if (dim === 'h' && s.type==='rect') {
+  } else if (dim === 'h' && (s.type==='rect' || s.type==='furn-rect')) {
     s.y2 = s.y1 + m2px(val);
-  } else if (dim === 'r' && (s.type==='tree' || s.type==='arc' || s.type==='poly')) {
+  } else if (dim === 'r' && (s.type==='tree' || s.type==='arc' || s.type==='poly' || s.type==='furn-circ' || s.type==='furn-poly')) {
     s.r = m2px(val);
   }
   if (simRunning) buildObstacles();
@@ -4524,12 +5439,13 @@ function setTool(t){
     selectedIdx=null; selectedSet.clear(); draggingSelected=false;
     selectedZoneIdx=null; draggingZone=false; zoneDragOffsets=[];
   }
-  spawnPendingPoly=[]; // clear any in-progress poly spawn when switching away
-  ['wall','rect','arc','poly','opening','eraser','tree','select','zone','spawn'].forEach(id=>{
+  spawnPendingPoly=[]; _boxSel=null; 
+  ['wall','rect','arc','poly','opening','eraser','tree','select','zone','spawn','furn','screen'].forEach(id=>{
     const el=document.getElementById('t-'+id);
     if(el) el.classList.toggle('active',id===t);
   });
-  document.getElementById('perm-row').style.display      = t==='tree'   ? 'flex'  : 'none';
+  document.getElementById('perm-row').style.display        = t==='tree'   ? 'flex'  : 'none';
+  document.getElementById('screen-perm-row').style.display = t==='screen' ? 'flex'  : 'none';
   document.getElementById('eraser-row').classList.toggle('show', t==='eraser');
   document.getElementById('spawn-mode-row').style.display = t==='spawn' ? 'block' : 'none';
   document.getElementById('zone-mode-row').style.display  = t==='zone'  ? 'block' : 'none';
@@ -4539,23 +5455,26 @@ function setTool(t){
   if (t==='zone')  setZoneMode(zoneMode);
 
   const cursors = {wall:'crosshair',rect:'crosshair',arc:'crosshair',poly:'crosshair',
-                   opening:'crosshair',eraser:'none',tree:'crosshair',select:'default',zone:'cell',spawn:'crosshair'};
+                   opening:'crosshair',eraser:'none',tree:'crosshair',select:'default',zone:'cell',spawn:'crosshair',furn:'crosshair',screen:'crosshair'};
   cvUI.style.cursor = cursors[t] || 'crosshair';
 
   document.getElementById('hint').textContent = {
-    wall:    'Click + drag to draw a wall segment',
+    wall:    'Click + drag to draw a wall · Hold Shift to snap to 45°',
     rect:    'Click + drag to draw a room rectangle',
     arc:     {quarter:'Click centre + drag for a quarter-circle wall', half:'Click centre + drag for a half-circle wall', full:'Click centre + drag for a full circle wall'}[arcSweep],
     poly:    `Click centre + drag radius for a ${polySides}-sided polygon wall`,
-    opening: 'Click + drag to draw a window or door (air passes through)',
+    opening: 'Click + drag to draw a window or door · Hold Shift to snap to 45°',
     eraser:  'Drag to erase walls · ← → keys resize brush',
     tree:    'Click + drag outward to set tree radius · T to cycle density',
     select:  'Drag to move · Right-click for options',
     spawn:   'Switch Edge/Line below · drag a line to set custom particle emitter',
+    furn:    'Click + drag to place a solid rectangular furniture obstacle',
+    screen:  `Click + drag to draw a screen · ${screenPerm}% permeable · [Y] to cycle`,
   }[t] || (t==='zone' ? (zoneMode==='polygon'
     ? 'Click to place points · Double-click to close polygon zone'
     : 'Click + drag to draw a rectangle zone') : '');
 }
+
 
 function setSpawnMode(m) {
   spawnMode = m;
@@ -4616,6 +5535,28 @@ function onPolySides(n) {
     `Click centre + drag radius for a ${n}-sided polygon wall`;
 }
 
+function setScreenPerm(p) {
+  screenPerm = p;
+  ['25','50','75'].forEach(v => {
+    const btn = document.getElementById('spb-' + v);
+    if (btn) btn.classList.toggle('active', v === p);
+  });
+  // Flash the button
+  const btn = document.getElementById('spb-' + p);
+  if (btn) {
+    btn.classList.remove('screen-flash'); void btn.offsetWidth;
+    btn.classList.add('screen-flash');
+    btn.addEventListener('animationend', () => btn.classList.remove('screen-flash'), {once:true});
+  }
+  // Flash all drawn screen segments
+  if (screenHighlightTimer) clearTimeout(screenHighlightTimer);
+  _screenHighlight = true; redrawWalls();
+  screenHighlightTimer = setTimeout(() => { _screenHighlight = false; redrawWalls(); }, 400);
+  // Update hint
+  const hint = document.getElementById('hint');
+  if (hint && tool === 'screen') hint.textContent = `Click to place points · Double-click to finish · ${p}% permeable · [Y] to cycle`;
+}
+
 function setTreePerm(p){
   treePerm=p;
   ['high','med','low'].forEach(k=>{
@@ -4669,18 +5610,22 @@ function setResolution(cellSize) {
   CELL = cellSize;
   // Update PX_PER_M and M_PER_PX derived values used for grid display
   // (they are const declarations but we shadow them with the updated CELL)
-  document.getElementById('res-high').classList.toggle('active', cellSize===8);
-  document.getElementById('res-low').classList.toggle('active',  cellSize===16);
+  document.getElementById('res-ultra').classList.toggle('active', cellSize===4);
+  document.getElementById('res-high').classList.toggle('active',  cellSize===8);
+  document.getElementById('res-low').classList.toggle('active',   cellSize===16);
   // Rebuild everything with new cell size
   const wasRunning = simRunning;
   if (simRunning) { cancelAnimationFrame(animId); simRunning=false; }
   resize(); // recomputes GW/GH, reinits arrays, redraws
   if (wasRunning) { simRunning=true; buildObstacles(); initParticles(); simLoop(); }
-  flashHint(cellSize===8 ? '✓ High resolution — finer flow detail' : '✓ Low resolution — faster performance');
+  const resLabels = {4:'✓ Ultra resolution — 4× cells, may affect performance', 8:'✓ High resolution — finer flow detail', 16:'✓ Low resolution — faster performance'};
+  flashHint(resLabels[cellSize] || '✓ Resolution changed');
 }
 
 function toggleLightMode() {
   lightMode = !lightMode;
+  const wrap = document.getElementById('canvas-wrap');
+  if (wrap) wrap.style.background = lightMode ? '#f0f2f5' : '#080a0f';
   document.getElementById('tg-light').classList.toggle('on', lightMode);
   const ov = document.getElementById('pscale-overlay');
   const bar = document.getElementById('pscale-bar');
@@ -4825,6 +5770,11 @@ function switchSinfoTab(tab) {
   document.querySelectorAll('.sinfo-panel').forEach(p => {
     p.classList.toggle('active', p.id==='sinfo-'+tab);
   });
+}
+
+function onTimeScale(v) {
+  simTimeScale = Math.max(1, Math.min(10, v));
+  document.getElementById('sl-timescale').textContent = simTimeScale % 1 === 0 ? simTimeScale + '×' : simTimeScale.toFixed(1) + '×';
 }
 
 function setAP(key, val, min, max) {
@@ -5205,7 +6155,15 @@ document.addEventListener('keydown', e => {
         setTool('arc');
       }
       break;
-    case 'p': setTool('poly');    break;
+    case 'y':
+      if (tool === 'screen') {
+        const scrCycleY = {'25':'50','50':'75','75':'25'};
+        setScreenPerm(scrCycleY[screenPerm] || '25');
+      } else {
+        setTool('screen');
+      }
+      break;
+    case 'p': setTool('poly'); break;
     case 'o': setTool('opening'); break;
     case 't':
       if (tool === 'tree') {
@@ -5217,6 +6175,7 @@ document.addEventListener('keydown', e => {
       }
       break;
     case 'e': setTool('eraser');  break;
+    case 'f': setTool('furn'); break;
     case 'l':
       if (tool === 'spawn') {
         setSpawnMode(spawnMode === 'edge' ? 'line' : 'edge');
@@ -5232,6 +6191,7 @@ document.addEventListener('keydown', e => {
         setTool('zone');
       }
       break;
+    case 'escape': break;
     case 'delete':
     case 'backspace':
       // Delete selected zone if select tool is active and a zone is selected
@@ -5255,7 +6215,7 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Welcome screen ──
-// Fixed cell-to-metre mappings per scale (CELL always = 8px)
+// Fixed cell-to-metre mappings per scale (default CELL=8px; ultra=4px halves these)
 const SCALE_CELL_M = { small: 0.2, medium: 0.5, large: 2.0 };
 
 function selectScale(scale) {
@@ -5480,7 +6440,7 @@ function updateGridSizePreview() {
   const cw = area ? area.clientWidth : canvasW;
   const mpp = w / cw;
   const cellM = (mpp * CELL).toFixed(2);
-  const res = CELL===8?'High':'Low';
+  const res = CELL===4?'Ultra':CELL===8?'High':'Low';
   document.getElementById('gs-preview').textContent = `${w} × ${h} m`;
   document.getElementById('gs-cell').textContent    = `${cellM} m`;
   document.getElementById('gs-res').textContent     = res;
@@ -5562,6 +6522,7 @@ function clampPan() {
 
 function canvasDrawAll() {
   drawGridLines();
+  drawImageLayer();
   if (simRunning && typeof drawPressureField === 'function') drawPressureField();
   redrawWalls();
   drawZone();
@@ -5657,6 +6618,1269 @@ onSpd(5);
 if (window.parent && window.parent !== window) {
   window.parent.postMessage({ type: 'BEM_IFRAME_READY' }, '*');
 }
+
+
+// ════════════════════════════════════════════════════════════════════════
+//  REFERENCE IMAGE LAYER — local only (localStorage), not synced to cloud
+// ════════════════════════════════════════════════════════════════════════
+
+function _loadImagesFromStorage() {
+  try { _images = JSON.parse(localStorage.getItem(IMG_STORE_KEY)) || []; }
+  catch { _images = []; }
+  // Re-cache img elements and redraw once loaded
+  let pending = _images.length;
+  if (!pending) return;
+  _images.forEach(img => {
+    const el = new Image();
+    el.onload = () => { pending--; if (pending === 0) drawImageLayer(); };
+    el.src = img.dataUrl;
+    _imgElements[img.id] = el;
+  });
+}
+
+function _saveImagesToStorage() {
+  try { localStorage.setItem(IMG_STORE_KEY, JSON.stringify(_images)); }
+  catch { flashHint('⚠ Image too large for local storage — try a smaller file'); }
+}
+
+function drawImageLayer() {
+  if (!ctxImage || typeof _images === 'undefined') return;
+  if (!cvImage.width || !cvImage.height) return;
+  ctxImage.clearRect(0, 0, cvImage.width, cvImage.height);
+  if (!_images.length) return;
+
+  ctxImage.save();
+  // Match the same transform logic as redrawWalls / pushZoom
+  if (zoomLevel > 1.0) ctxImage.setTransform(zoomLevel, 0, 0, zoomLevel, panX, panY);
+  else ctxImage.setTransform(1, 0, 0, 1, 0, 0);
+
+  _images.forEach(img => {
+    if (!img.visible) return;
+    const el = _imgElements[img.id];
+    if (!el || !el.complete || !el.naturalWidth) return;
+    ctxImage.save();
+    ctxImage.globalAlpha = img.opacity;
+    // Draw centred, with rotation
+    ctxImage.translate(img.x + img.w / 2, img.y + img.h / 2);
+    if (img.rotation) ctxImage.rotate(img.rotation * Math.PI / 180);
+    ctxImage.drawImage(el, -img.w / 2, -img.h / 2, img.w, img.h);
+
+    // Show selection box + drag handle when selected
+    if (_selectedImageId === img.id && !img.locked) {
+      ctxImage.globalAlpha = 1;
+      ctxImage.strokeStyle = '#3de8b0';
+      ctxImage.lineWidth   = 1.5 / (zoomLevel > 1 ? zoomLevel : 1);
+      ctxImage.setLineDash([5, 4]);
+      ctxImage.strokeRect(-img.w/2, -img.h/2, img.w, img.h);
+      ctxImage.setLineDash([]);
+      // Corner resize handle (bottom-right)
+      const hr = 6 / (zoomLevel > 1 ? zoomLevel : 1);
+      ctxImage.fillStyle = '#3de8b0';
+      ctxImage.strokeStyle = '#080a0f';
+      ctxImage.lineWidth = 1.5 / (zoomLevel > 1 ? zoomLevel : 1);
+      ctxImage.beginPath(); ctxImage.arc(img.w/2, img.h/2, hr, 0, Math.PI*2);
+      ctxImage.fill(); ctxImage.stroke();
+      // Top-left move handle
+      ctxImage.beginPath(); ctxImage.arc(-img.w/2, -img.h/2, hr, 0, Math.PI*2);
+      ctxImage.fill(); ctxImage.stroke();
+    }
+    if (img.locked) {
+      // Show lock indicator
+      ctxImage.globalAlpha = 0.4;
+      ctxImage.strokeStyle = '#f0a832';
+      ctxImage.lineWidth = 1 / (zoomLevel > 1 ? zoomLevel : 1);
+      ctxImage.setLineDash([3, 4]);
+      ctxImage.strokeRect(-img.w/2, -img.h/2, img.w, img.h);
+      ctxImage.setLineDash([]);
+    }
+    ctxImage.restore();
+  });
+
+  ctxImage.restore();
+}
+
+// ── Import ───────────────────────────────────────────────────────────────────
+function onImageFileSelected(e) {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const tmpImg = new Image();
+    tmpImg.onload = () => {
+      // Compress/resize to max 1200px
+      const MAX = 1200;
+      let w = tmpImg.width, h = tmpImg.height;
+      if (w > MAX || h > MAX) {
+        const s = MAX / Math.max(w, h); w = Math.round(w*s); h = Math.round(h*s);
+      }
+      const cv2 = document.createElement('canvas'); cv2.width=w; cv2.height=h;
+      cv2.getContext('2d').drawImage(tmpImg, 0, 0, w, h);
+      const dataUrl = cv2.toDataURL('image/jpeg', 0.85);
+
+      // Fixed display width = half canvas width, maintain aspect ratio
+      const displayW = Math.round(canvasW * 0.5);
+      const displayH = Math.round(displayW * h / w);
+      const id = 'img_' + Date.now();
+
+      const img = {
+        id, name: file.name, dataUrl,
+        x: Math.round((canvasW - displayW) / 2),
+        y: Math.round((canvasH - displayH) / 2),
+        w: displayW, h: displayH,
+        baseW: displayW, baseH: displayH, // for scale reference
+        opacity: 0.5, visible: true, locked: false, rotation: 0
+      };
+
+      _images.push(img);
+      _selectedImageId = id;
+      // Cache image element — draw as soon as it loads
+      const el = new Image();
+      _imgElements[id] = el; // store BEFORE setting src
+      el.onload = () => {
+        drawImageLayer();
+        flashHint('✓ Image on canvas — drag to move, use panel to adjust');
+      };
+      el.onerror = () => { flashHint('⚠ Could not load image'); };
+      el.src = dataUrl;  // trigger load AFTER registering handlers
+      _saveImagesToStorage();
+      renderImageManager();
+      // Don't auto-open manager — user sees image appear on canvas first
+    };
+    tmpImg.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Selection + drag on canvas ───────────────────────────────────────────────
+let _selectedImageId = null;
+let _imgDragState    = null; // {id, mode:'move'|'resize', startMx, startMy, startX, startY, startW, startH}
+
+function imgHitTest(mx, my) {
+  // Returns {id, mode} or null. Check in reverse (last = on top).
+  for (let i = _images.length - 1; i >= 0; i--) {
+    const img = _images[i];
+    if (!img.visible || img.locked) continue;
+    // Transform point into image local coords (account for rotation)
+    const cx = img.x + img.w/2, cy = img.y + img.h/2;
+    const rad = -(img.rotation || 0) * Math.PI / 180;
+    const lx = (mx-cx)*Math.cos(rad) - (my-cy)*Math.sin(rad);
+    const ly = (mx-cx)*Math.sin(rad) + (my-cy)*Math.cos(rad);
+    const hw = img.w/2, hh = img.h/2;
+    const hr = 10 / (zoomLevel > 1 ? zoomLevel : 1);
+    // Bottom-right resize handle
+    if (Math.hypot(lx - hw, ly - hh) < hr) return { id: img.id, mode: 'resize' };
+    // Inside bounding box → move
+    if (lx >= -hw && lx <= hw && ly >= -hh && ly <= hh) return { id: img.id, mode: 'move' };
+  }
+  return null;
+}
+
+// Hook into the cvUI mousedown — check for image hits when select tool OR any tool
+// Images are a separate layer; we only interact with them when explicitly selected
+function tryImgMouseDown(mx, my) {
+  if (!_images.length) return false;
+  const hit = imgHitTest(mx, my);
+  if (hit) {
+    _selectedImageId = hit.id;
+    openImageManager();
+    const img = _images.find(i => i.id === hit.id);
+    _imgDragState = {
+      id: hit.id, mode: hit.mode,
+      startMx: mx, startMy: my,
+      startX: img.x, startY: img.y,
+      startW: img.w, startH: img.h
+    };
+    drawImageLayer();
+    return true;
+  }
+  // Click on empty area — deselect image
+  if (_selectedImageId) { _selectedImageId = null; drawImageLayer(); }
+  return false;
+}
+
+function tryImgMouseMove(mx, my) {
+  if (!_imgDragState) return false;
+  const img = _images.find(i => i.id === _imgDragState.id);
+  if (!img) return false;
+  const dx = mx - _imgDragState.startMx;
+  const dy = my - _imgDragState.startMy;
+  if (_imgDragState.mode === 'move') {
+    img.x = _imgDragState.startX + dx;
+    img.y = _imgDragState.startY + dy;
+  } else if (_imgDragState.mode === 'resize') {
+    const newW = Math.max(20, _imgDragState.startW + dx);
+    const newH = Math.round(newW * _imgDragState.startH / _imgDragState.startW);
+    img.w = newW; img.h = newH;
+  }
+  drawImageLayer();
+  return true;
+}
+
+function tryImgMouseUp() {
+  if (!_imgDragState) return false;
+  _imgDragState = null;
+  _saveImagesToStorage();
+  renderImageManager();
+  return true;
+}
+
+// ── Manager panel ─────────────────────────────────────────────────────────────
+function openImageManager() {
+  renderImageManager();
+  document.getElementById('img-manager').classList.add('show');
+}
+function closeImageManager() {
+  document.getElementById('img-manager').classList.remove('show');
+}
+
+function renderImageManager() {
+  const body  = document.getElementById('img-mgr-body');
+  const empty = document.getElementById('img-mgr-empty');
+  body.querySelectorAll('.img-item').forEach(el => el.remove());
+  if (!_images.length) { empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  _images.forEach(img => {
+    const isSelected = img.id === _selectedImageId;
+    const div = document.createElement('div');
+    div.className = 'img-item' + (isSelected ? ' img-item-sel' : '');
+    div.innerHTML = `
+      <img class="img-thumb" src="${img.dataUrl}" alt=""
+        onclick="imgSelect('${img.id}')" style="cursor:pointer;${isSelected?'border-color:var(--accent)':''}">
+      <div class="img-controls">
+        <div class="img-name" title="${img.name}">${img.name}</div>
+        <div class="img-row">
+          <span class="img-lbl">Opacity</span>
+          <input class="img-slider" type="range" min="0.05" max="1" step="0.05" value="${img.opacity}"
+            oninput="imgSet('${img.id}','opacity',+this.value);this.nextElementSibling.textContent=Math.round(+this.value*100)+'%'">
+          <span class="img-val">${Math.round(img.opacity*100)}%</span>
+        </div>
+        <div class="img-row">
+          <span class="img-lbl">Scale</span>
+          <input class="img-slider" type="range" min="0.1" max="4" step="0.05"
+            value="${img.baseW ? (img.w/img.baseW).toFixed(2) : 1}"
+            oninput="imgSetScale('${img.id}',+this.value);this.nextSibling.nextSibling.value=(+this.value).toFixed(2)">
+          <input type="number" min="0.1" max="4" step="0.05"
+            value="${img.baseW ? (img.w/img.baseW).toFixed(2) : '1.00'}"
+            style="width:48px;padding:1px 4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--accent);font-family:'Space Mono',monospace;font-size:9px;text-align:center;"
+            oninput="imgSetScale('${img.id}',Math.max(0.1,Math.min(4,+this.value)));this.previousSibling.previousSibling.value=this.value">
+        </div>
+        <div class="img-row">
+          <span class="img-lbl">Rotation</span>
+          <input class="img-slider" type="range" min="-180" max="180" step="1" value="${img.rotation||0}"
+            oninput="imgSet('${img.id}','rotation',+this.value);this.nextSibling.nextSibling.value=this.value">
+          <input type="number" min="-180" max="180" step="1" value="${img.rotation||0}"
+            style="width:44px;padding:1px 4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--accent);font-family:'Space Mono',monospace;font-size:9px;text-align:center;"
+            oninput="imgSet('${img.id}','rotation',Math.max(-180,Math.min(180,+this.value)));this.previousSibling.previousSibling.value=this.value">
+        </div>
+        <div class="img-btn-row">
+          <button class="img-btn ${img.visible?'':'vis-off'}"
+            onclick="imgToggle('${img.id}','visible')">${img.visible?'👁 Show':'👁 Hide'}</button>
+          <button class="img-btn ${img.locked?'':'vis-off'}"
+            onclick="imgToggle('${img.id}','locked')">${img.locked?'🔒 Locked':'🔓 Unlock'}</button>
+          <button class="img-btn danger" onclick="imgDelete('${img.id}')">✕</button>
+        </div>
+      </div>`;
+    body.appendChild(div);
+  });
+}
+
+function imgSelect(id) {
+  _selectedImageId = id;
+  drawImageLayer();
+  renderImageManager();
+}
+
+function imgSet(id, prop, val) {
+  const img = _images.find(i => i.id === id); if (!img) return;
+  img[prop] = val;
+  _saveImagesToStorage(); drawImageLayer();
+}
+
+function imgSetScale(id, scale) {
+  const img = _images.find(i => i.id === id); if (!img) return;
+  const cx = img.x + img.w/2, cy = img.y + img.h/2;
+  const base = img.baseW || img.w;
+  const baseH = img.baseH || img.h;
+  img.w = Math.round(base * scale);
+  img.h = Math.round(baseH * scale);
+  img.x = Math.round(cx - img.w/2);
+  img.y = Math.round(cy - img.h/2);
+  _saveImagesToStorage(); drawImageLayer();
+}
+
+function imgToggle(id, prop) {
+  const img = _images.find(i => i.id === id); if (!img) return;
+  img[prop] = !img[prop];
+  _saveImagesToStorage(); drawImageLayer(); renderImageManager();
+}
+
+function imgDelete(id) {
+  _images = _images.filter(i => i.id !== id);
+  delete _imgElements[id];
+  if (_selectedImageId === id) _selectedImageId = null;
+  _saveImagesToStorage(); drawImageLayer(); renderImageManager();
+  flashHint('✓ Image removed');
+}
+
+// Initialise images from localStorage on page load
+_loadImagesFromStorage();
+
+// ════════════════════════════════════════════════════════════════════════
+//  IFC IMPORT — Walls + Openings (IFC 2x3 / IFC4 plain-text parser)
+//  Extracts IfcWall/IfcWallStandardCase → wall segments
+//  Extracts IfcDoor/IfcWindow → opening segments
+//  Coordinates at 1:1 metres, converted to canvas pixels via m2px()
+// ════════════════════════════════════════════════════════════════════════
+
+function onIFCFileSelected(e) {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  flashHint('Parsing IFC…');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      _ifcParsed = parseIFC(ev.target.result);
+      if (!_ifcParsed || !_ifcParsed.storeys.length) {
+        flashHint('⚠ No wall geometry found in IFC file');
+        return;
+      }
+      populateIFCStoreySelect();
+      openIFCModal();
+    } catch(err) {
+      flashHint('⚠ IFC parse error: ' + err.message);
+      console.error('IFC parse error', err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function parseIFC(text) {
+  // ── Step 1: Build entity map ─────────────────────────────────────────
+  // IFC attributes can contain nested parentheses e.g. (#1,#2,(#3,#4))
+  // so we must balance parens rather than use lazy .*? regex
+  const entityMap = {};
+  const lineRe = /^#(\d+)\s*=\s*(\w+)\s*\(/gm;
+  let m;
+  while ((m = lineRe.exec(text)) !== null) {
+    const id = m[1], type = m[2].toUpperCase();
+    // Find matching closing paren by counting depth
+    let depth = 1, i = m.index + m[0].length;
+    const start = i;
+    while (i < text.length && depth > 0) {
+      if (text[i] === '(') depth++;
+      else if (text[i] === ')') depth--;
+      i++;
+    }
+    const raw = text.slice(start, i - 1).replace(/\s+/g, ' ').trim();
+    entityMap[id] = { type, raw };
+  }
+  console.log('[IFC] entities parsed:', Object.keys(entityMap).length);
+
+  // ── Step 1b: Detect length units ─────────────────────────────────────
+  // IFC files can use mm (MILLI METRE) or m (METRE). Detect and normalise.
+  let unitScale = 1.0; // default: metres
+  for (const [, e] of Object.entries(entityMap)) {
+    if (e.type === 'IFCSIUNIT' && /LENGTHUNIT/.test(e.raw)) {
+      if (/\.MILLI\./.test(e.raw))      { unitScale = 0.001; break; }
+      else if (/\.CENTI\./.test(e.raw)) { unitScale = 0.01;  break; }
+      else if (/\.MICRO\./.test(e.raw)) { unitScale = 1e-6;  break; }
+    }
+  }
+  console.log('[IFC] unit scale:', unitScale, unitScale === 0.001 ? '(mm)' : '(m)');
+
+  // ── Step 2: Find storeys ─────────────────────────────────────────────
+  const storeys = [];
+  const storeyMap = {};
+  for (const [id, ent] of Object.entries(entityMap)) {
+    if (ent.type === 'IFCBUILDINGSTOREY') {
+      // IFC storey: GUID(0), OwnerHistory(ref), Name(str,idx1), Description, ..., LongName(str)
+      const name = extractString(ent.raw, 1) || extractString(ent.raw, 2) || extractString(ent.raw, 0) || ('Level ' + storeys.length);
+      storeys.push({ id, name, walls: [], openings: [] });
+      storeyMap[id] = storeys.length - 1;
+    }
+  }
+  if (!storeys.length) storeys.push({ id: '__default__', name: 'All', walls: [], openings: [] });
+  console.log('[IFC] storeys found:', storeys.map(s=>s.name));
+
+  // ── Step 3: Spatial containment ──────────────────────────────────────
+  const elementStorey = {};
+  for (const [id, ent] of Object.entries(entityMap)) {
+    if (ent.type === 'IFCRELCONTAINEDINSPATIALSTRUCTURE') {
+      const refs = extractRefs(ent.raw);
+      if (refs.length < 2) continue;
+      const structRef = refs[refs.length - 1];
+      const si = storeyMap[structRef];
+      if (si === undefined) continue;
+      refs.slice(0, -1).forEach(r => { elementStorey[r] = si; });
+    }
+  }
+
+  // ── Step 4: Placement resolver ───────────────────────────────────────
+  const placementCache = {};
+
+  function getCartesian(id) {
+    const ent = entityMap[id]; if (!ent) return {x:0,y:0,z:0};
+    const nums = extractNumbers(ent.raw);
+    return { x: (nums[0]||0)*unitScale, y: (nums[1]||0)*unitScale, z: (nums[2]||0)*unitScale };
+  }
+
+  function getDirection(id) {
+    const ent = entityMap[id]; if (!ent) return {dx:1,dy:0};
+    const nums = extractNumbers(ent.raw);
+    // IFC direction can be 2D or 3D — take X,Y components only
+    const dx = nums[0] !== undefined ? nums[0] : 1;
+    const dy = nums[1] !== undefined ? nums[1] : 0;
+    return { dx, dy };
+  }
+
+  function resolveAxis2d3d(id) {
+    const ent = entityMap[id]; if (!ent) return {x:0,y:0,rot:0};
+    const refs = extractRefs(ent.raw);
+    const loc = refs[0] ? getCartesian(refs[0]) : {x:0,y:0};
+    let rot = 0;
+    // IFC order: refs[0]=Location, refs[1]=Axis(Z), refs[2]=RefDirection(X)
+    // For 2D placement (IFCAXIS2PLACEMENT2D): refs[0]=Location, refs[1]=RefDirection(X)
+    const isPlacement2D = ent.type === 'IFCAXIS2PLACEMENT2D';
+    const refDirIdx = isPlacement2D ? 1 : 2; // X-axis is index 2 for 3D, index 1 for 2D
+    // Try RefDirection first (correct index)
+    if (refs[refDirIdx] && refs[refDirIdx] !== '$') {
+      const de = entityMap[refs[refDirIdx]];
+      if (de && de.type === 'IFCDIRECTION') {
+        const d = getDirection(refs[refDirIdx]);
+        rot = Math.atan2(d.dy, d.dx);
+      }
+    } else {
+      // Fallback: scan all refs for any IFCDIRECTION (skip first — that's location point)
+      for (let i = refDirIdx; i < refs.length; i++) {
+        const r = refs[i]; if (!r || r === '$') continue;
+        const de = entityMap[r];
+        if (de && de.type === 'IFCDIRECTION') {
+          const d = getDirection(r);
+          rot = Math.atan2(d.dy, d.dx);
+          break;
+        }
+      }
+    }
+    return { x: loc.x, y: loc.y, rot };
+  }
+
+  function getPlacement(id) {
+    if (!id || id==='$') return {x:0,y:0,rot:0};
+    if (placementCache[id]) return placementCache[id];
+    const ent = entityMap[id]; if (!ent) return {x:0,y:0,rot:0};
+    let result = {x:0,y:0,rot:0};
+
+    if (ent.type === 'IFCLOCALPLACEMENT') {
+      const refs = extractRefs(ent.raw);
+      // refs[0] = PlacementRelTo (parent), refs[1] = RelativePlacement (axis)
+      const parent = (refs[0] && refs[0]!=='$') ? getPlacement(refs[0]) : {x:0,y:0,rot:0};
+      const axis   = (refs[1] && refs[1]!=='$') ? resolveAxis2d3d(refs[1]) : {x:0,y:0,rot:0};
+      const cos = Math.cos(parent.rot), sin = Math.sin(parent.rot);
+      result = {
+        x:   parent.x + cos*axis.x - sin*axis.y,
+        y:   parent.y + sin*axis.x + cos*axis.y,
+        rot: parent.rot + axis.rot
+      };
+    } else if (ent.type === 'IFCAXIS2PLACEMENT3D' || ent.type === 'IFCAXIS2PLACEMENT2D') {
+      result = resolveAxis2d3d(id);
+    }
+    placementCache[id] = result;
+    return result;
+  }
+
+  // ── Step 4b: Build relationship maps ────────────────────────────────
+  const fillToOpening = {}; // door/window id → opening element id
+  const openingToWall = {}; // opening element id → host wall id
+  for (const [, e] of Object.entries(entityMap)) {
+    if (e.type === 'IFCRELFILLSELEMENT') {
+      const rs = extractRefs(e.raw);
+      const openingEl = rs.find(r => entityMap[r]?.type === 'IFCOPENINGELEMENT');
+      const fillEl    = rs.find(r => ['IFCDOOR','IFCWINDOW'].includes(entityMap[r]?.type));
+      if (openingEl && fillEl) fillToOpening[fillEl] = openingEl;
+    }
+    if (e.type === 'IFCRELVOIDSELEMENT') {
+      const rs = extractRefs(e.raw);
+      const wallEl    = rs.find(r => ['IFCWALL','IFCWALLSTANDARDCASE'].includes(entityMap[r]?.type));
+      const openingEl = rs.find(r => entityMap[r]?.type === 'IFCOPENINGELEMENT');
+      if (wallEl && openingEl) openingToWall[openingEl] = wallEl;
+    }
+  }
+
+  // Pre-compute wall axis directions for perpendicular snap
+  // wallAxisDir[wallId] = {ox,oy,dx,dy} — world origin and unit direction of wall axis
+  const wallAxisDir = {};
+  function getWallAxisDir(wallId) {
+    if (wallAxisDir[wallId]) return wallAxisDir[wallId];
+    const wall = entityMap[wallId]; if (!wall) return null;
+    const wrs = extractRefs(wall.raw);
+    const wPlRef = wrs.find(r => entityMap[r]?.type === 'IFCLOCALPLACEMENT');
+    const wShapeRef = wrs.find(r => entityMap[r]?.type === 'IFCPRODUCTDEFINITIONSHAPE');
+    if (!wPlRef || !wShapeRef) return null;
+    const wPl = getPlacement(wPlRef);
+    const axisPts = findAxisPolyline(wShapeRef);
+    if (!axisPts || axisPts.length < 2) return null;
+    // Transform axis start/end to world coords
+    const p1 = transformPt(axisPts[0].x, axisPts[0].y, wPl);
+    const p2 = transformPt(axisPts[axisPts.length-1].x, axisPts[axisPts.length-1].y, wPl);
+    const len = Math.hypot(p2.x-p1.x, p2.y-p1.y);
+    if (len < 0.01) return null;
+    const result = { ox:p1.x, oy:p1.y, dx:(p2.x-p1.x)/len, dy:(p2.y-p1.y)/len, len };
+    wallAxisDir[wallId] = result;
+    return result;
+  }
+
+  // ── Step 5: Walk all walls and doors/windows ──────────────────────────
+  const wallTypes    = new Set(['IFCWALL','IFCWALLSTANDARDCASE']);
+  const openingTypes = new Set(['IFCDOOR','IFCWINDOW']);
+  let found = 0, skipped = 0;
+
+  // Helper: transform a local 2D point by a placement (x,y,rot)
+  function transformPt(px, py, pl) {
+    const c = Math.cos(pl.rot), s = Math.sin(pl.rot);
+    return { x: pl.x + c*px - s*py, y: pl.y + s*px + c*py };
+  }
+
+  // Helper: find the Axis polyline for a wall — gives local start/end coords
+  // Handles both IFC2x3 (IfcPolyline/Curve2D) and IFC4 (IfcIndexedPolyCurve/Curve3D)
+  function findAxisPolyline(shapeRef) {
+    const shape = entityMap[shapeRef]; if (!shape) return null;
+    for (const r1 of extractRefs(shape.raw)) {
+      const rep = entityMap[r1]; if (!rep) continue;
+      if (rep.type !== 'IFCSHAPEREPRESENTATION') continue;
+      // Match 'Axis' label in Curve2D or Curve3D representations
+      if (!/Axis/i.test(rep.raw) && !/Curve[23]D/i.test(rep.raw)) continue;
+      for (const r2 of extractRefs(rep.raw)) {
+        const item = entityMap[r2]; if (!item) continue;
+
+        // IFC2x3: IfcPolyline with individual IfcCartesianPoint refs
+        if (item.type === 'IFCPOLYLINE') {
+          const ptRefs = extractRefs(item.raw);
+          const pts = ptRefs.map(pr => {
+            const pe = entityMap[pr]; if (!pe) return null;
+            const ns = extractNumbers(pe.raw);
+            return ns.length >= 2 ? {x: ns[0]*unitScale, y: ns[1]*unitScale} : null;
+          }).filter(Boolean);
+          if (pts.length >= 2) return pts;
+        }
+
+        // IFC4: IfcIndexedPolyCurve with IfcCartesianPointList2D/3D
+        if (item.type === 'IFCINDEXEDPOLYCURVE') {
+          const listRefs = extractRefs(item.raw);
+          for (const lr of listRefs) {
+            const listEnt = entityMap[lr]; if (!listEnt) continue;
+            if (!/CARTESIANPOINTLIST/i.test(listEnt.type)) continue;
+            const tuples = parseIFCPointList(entityMap, lr);
+            if (tuples.length >= 2) {
+              return tuples.map(t => ({x: t[0]*unitScale, y: t[1]*unitScale}));
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  // Helper: extract width from IfcOpeningElement profile (IFC4 style)
+  function getOpeningElementWidth(openingId) {
+    const op = entityMap[openingId]; if (!op) return null;
+    const opRs = extractRefs(op.raw);
+    const shapeRef = opRs.find(r => entityMap[r]?.type === 'IFCPRODUCTDEFINITIONSHAPE');
+    if (!shapeRef) return null;
+    const shape = entityMap[shapeRef];
+    let width = null;
+    const vis = new Set();
+    function findW(rid, d) {
+      if (d>8||!rid||vis.has(rid)||width) return; vis.add(rid);
+      const e=entityMap[rid]; if (!e) return;
+      if (e.type==='IFCRECTANGLEPROFILEDEF') {
+        const ns=extractNumbers(e.raw.replace(/#\d+/g,'')).map(n=>n*unitScale);
+        const valid=ns.filter(n=>n>0.01&&n<500);
+        if (valid.length) { width=Math.max(...valid); return; }
+      }
+      if (e.type==='IFCARBITRARYCLOSEDPROFILEDEF'||e.type==='IFCARBITRARYOPENPROFILEDEF') {
+        // Get bounding box from point list
+        for (const r of extractRefs(e.raw)) {
+          const curve=entityMap[r]; if (!curve) continue;
+          if (curve.type==='IFCINDEXEDPOLYCURVE') {
+            for (const lr of extractRefs(curve.raw)) {
+              const pl=entityMap[lr]; if (!pl||!/POINTLIST/i.test(pl.type)) continue;
+              const tuples=parseIFCPointList(entityMap,lr);
+              if (tuples.length>=2) {
+                const xs=tuples.map(t=>t[0]*unitScale), ys=tuples.map(t=>t[1]*unitScale);
+                const w=Math.max(...xs)-Math.min(...xs), h=Math.max(...ys)-Math.min(...ys);
+                // Width is the larger dimension (not wall thickness)
+                const candidate=Math.max(w,h);
+                if (candidate>0.01&&candidate<500) { width=candidate; return; }
+              }
+            }
+          }
+          if (curve.type==='IFCPOLYLINE') {
+            const ptrs=extractRefs(curve.raw);
+            const pts=ptrs.map(pr=>{const pe=entityMap[pr];if(!pe)return null;const ns=extractNumbers(pe.raw);return ns.length>=2?[ns[0]*unitScale,ns[1]*unitScale]:null;}).filter(Boolean);
+            if (pts.length>=2) {
+              const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+              const w=Math.max(...xs)-Math.min(...xs),h=Math.max(...ys)-Math.min(...ys);
+              const candidate=Math.max(w,h);
+              if (candidate>0.01&&candidate<500) { width=candidate; return; }
+            }
+          }
+        }
+      }
+      for (const r of extractRefs(e.raw)) findW(r,d+1);
+    }
+    for (const r of extractRefs(shape.raw)) findW(r,0);
+    return width;
+  }
+
+  // Helper: find length for doors/windows — tries BoundingBox then opening element
+  function findOpeningLength(refs) {
+    let length = null;
+    const visited = new Set();
+    function findLen(refId, depth) {
+      if (depth > 10 || !refId || refId==='$' || visited.has(refId)) return;
+      visited.add(refId);
+      const e = entityMap[refId]; if (!e) return;
+      if (e.type === 'IFCRECTANGLEPROFILEDEF') {
+        const ns = extractNumbers(e.raw.replace(/#\d+/g,'')).map(n=>n*unitScale);
+        const valid = ns.filter(n => n > 0.01 && n < 500);
+        if (valid.length) { length = Math.max(...valid); return; }
+      }
+      if (e.type === 'IFCBOUNDINGBOX') {
+        const ns = extractNumbers(e.raw.replace(/#\d+/g,'')).map(n=>n*unitScale);
+        const valid = ns.filter(n => n > 0.01 && n < 500);
+        if (valid.length) { length = ns[0]; return; } // XDim is first
+      }
+      for (const r of extractRefs(e.raw)) findLen(r, depth+1);
+    }
+    for (const r of refs) findLen(r, 0);
+    return length;
+  }
+
+  for (const [id, ent] of Object.entries(entityMap)) {
+    if (!wallTypes.has(ent.type) && !openingTypes.has(ent.type)) continue;
+    const isOpening = openingTypes.has(ent.type);
+    const storeyIdx = elementStorey[id] ?? 0;
+    const refs      = extractRefs(ent.raw);
+
+    // Find LocalPlacement ref
+    const plRef = refs.find(r => entityMap[r]?.type === 'IFCLOCALPLACEMENT');
+    if (!plRef) { skipped++; continue; }
+    const pl = getPlacement(plRef);
+
+    // Find ProductDefinitionShape ref
+    const shapeRef = refs.find(r => entityMap[r]?.type === 'IFCPRODUCTDEFINITIONSHAPE');
+
+    let x1, y1, x2, y2;
+
+    if (!isOpening && shapeRef) {
+      // Walls: use Axis/Curve2D polyline for exact start/end in local coords
+      const axisPts = findAxisPolyline(shapeRef);
+      if (axisPts && axisPts.length >= 2) {
+        const p1w = transformPt(axisPts[0].x, axisPts[0].y, pl);
+        const p2w = transformPt(axisPts[axisPts.length-1].x, axisPts[axisPts.length-1].y, pl);
+        x1=p1w.x; y1=p1w.y; x2=p2w.x; y2=p2w.y;
+      } else {
+        // Fallback: use bounding box / rect profile length centred on placement
+        const length = findOpeningLength(refs);
+        if (!length || length > 500) { skipped++; continue; }
+        const c=Math.cos(pl.rot), s=Math.sin(pl.rot), h=length/2;
+        x1=pl.x-c*h; y1=pl.y-s*h; x2=pl.x+c*h; y2=pl.y+s*h;
+      }
+    } else {
+      // Doors/windows: get opening width
+      // Strategy 1: BoundingBox XDim (IFC2x3 style)
+      // Strategy 2: IfcOpeningElement profile geometry (IFC4 style)
+      let xdim = null;
+
+      // Try BoundingBox first
+      if (shapeRef) {
+        const shape = entityMap[shapeRef];
+        if (shape) {
+          for (const r1 of extractRefs(shape.raw)) {
+            const rep = entityMap[r1]; if (!rep || rep.type !== 'IFCSHAPEREPRESENTATION') continue;
+            if (!/BoundingBox/i.test(rep.raw)) continue;
+            for (const r2 of extractRefs(rep.raw)) {
+              const bbox = entityMap[r2]; if (!bbox || bbox.type !== 'IFCBOUNDINGBOX') continue;
+              const ns = extractNumbers(bbox.raw.replace(/#\d+/g,'')).map(n=>n*unitScale);
+              if (ns.length >= 1 && ns[0] > 0.01 && ns[0] < 100) { xdim = ns[0]; break; }
+            }
+            if (xdim) break;
+          }
+        }
+      }
+
+      // Fallback: use IfcOpeningElement profile bounding box
+      if (!xdim) {
+        const openingElId = fillToOpening[id];
+        if (openingElId) xdim = getOpeningElementWidth(openingElId);
+      }
+
+      // Last resort: findOpeningLength
+      if (!xdim) xdim = findOpeningLength(refs);
+
+      if (!xdim || xdim > 30) { skipped++; continue; } // skip if no width found or implausible
+      // The window's own placement already includes a -xdim/2 local offset,
+      // making pl the START of the opening (not the centre).
+      // So extend by +xdim along the wall direction from pl.
+      // Snap opening to its host wall axis (removes perpendicular offset)
+      // Only snap if perpendicular offset > 0.05m (avoids disturbing already-correct openings)
+      let didSnap = false;
+      const openingElId2 = fillToOpening[id];
+      const hostWallId   = openingElId2 ? openingToWall[openingElId2] : null;
+      if (hostWallId) {
+        const axDir = getWallAxisDir(hostWallId);
+        if (axDir) {
+          // Distance from pl to wall axis line (perpendicular offset)
+          const tx = (pl.x - axDir.ox) * axDir.dx + (pl.y - axDir.oy) * axDir.dy;
+          const footX = axDir.ox + tx * axDir.dx;
+          const footY = axDir.oy + tx * axDir.dy;
+          const perpDist = Math.hypot(pl.x - footX, pl.y - footY);
+          if (perpDist > 0.05) {
+            // Significant perpendicular offset — snap to wall axis
+            x1 = footX;
+            y1 = footY;
+            x2 = footX + axDir.dx * xdim;
+            y2 = footY + axDir.dy * xdim;
+            didSnap = true;
+          }
+        }
+      }
+      if (!didSnap) {
+        const c=Math.cos(pl.rot), s=Math.sin(pl.rot);
+        x1=pl.x; y1=pl.y; x2=pl.x+c*xdim; y2=pl.y+s*xdim;
+      }
+    }
+
+    if (Math.hypot(x2-x1, y2-y1) < 0.05) { skipped++; continue; }
+
+    const seg = { x1, y1, x2, y2, type: isOpening ? 'opening' : 'wall', _ifc: true };
+    const target = storeys[storeyIdx] || storeys[0];
+    if (isOpening) target.openings.push(seg);
+    else           target.walls.push(seg);
+    found++;
+  }
+
+
+  console.log('[IFC] geometry: found', found, 'skipped', skipped);
+  storeys.forEach(s => console.log('[IFC] storey', s.name, ':', s.walls.length, 'walls,', s.openings.length, 'openings'));
+  return { storeys };
+}
+
+// ── IFC string helpers ────────────────────────────────────────────────────
+function extractString(raw, idx) {
+  const m = [...raw.matchAll(/'([^']*)'/g)];
+  return m[idx] ? m[idx][1] : null;
+}
+function extractRefs(raw) {
+  const refs = []; let m; const re = /#(\d+)/g;
+  while ((m = re.exec(raw)) !== null) refs.push(m[1]);
+  return refs;
+}
+function extractNumbers(raw) {
+  const nums = []; let m;
+  const re = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g;
+  while ((m = re.exec(raw)) !== null) nums.push(parseFloat(m[0]));
+  return nums;
+}
+
+// ── IFC4 point list helper ───────────────────────────────────────────────
+function parseIFCPointList(entityMap, listId) {
+  // Parses IfcCartesianPointList2D/3D inline coordinates
+  // Format raw: ((x1,y1,z1),(x2,y2,z2),...)
+  const e = entityMap[listId]; if (!e) return [];
+  const inner = e.raw.replace(/\s+/g,'');
+  const tuples = []; let depth=0, start=-1;
+  for (let i=0; i<inner.length; i++) {
+    if (inner[i]==='(' && depth++===1) start=i+1;
+    else if (inner[i]===')' && --depth===1 && start>=0) {
+      const nums = inner.slice(start,i).split(',').map(Number).filter(n=>!isNaN(n));
+      if (nums.length>=2) tuples.push(nums);
+      start=-1;
+    }
+  }
+  return tuples;
+}
+
+// ── IFC Modal ─────────────────────────────────────────────────────────────
+function populateIFCStoreySelect() {
+  const sel = document.getElementById('ifc-storey-select');
+  sel.innerHTML = '<option value="__all__">All storeys</option>';
+  if (!_ifcParsed) return;
+  _ifcParsed.storeys.forEach((s, i) => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = s.name + ' (' + (s.walls.length + s.openings.length) + ' elements)';
+    sel.appendChild(opt);
+  });
+}
+
+function openIFCModal() {
+  document.getElementById('ifc-modal-overlay').classList.add('show');
+}
+function closeIFCModal() {
+  document.getElementById('ifc-modal-overlay').classList.remove('show');
+  _ifcParsed = null;
+}
+
+function commitIFCImport() {
+  if (!_ifcParsed) return;
+  const sel  = document.getElementById('ifc-storey-select');
+  const mode = document.querySelector('input[name="ifc-mode"]:checked')?.value || 'add';
+  const idx  = sel.value;
+
+  let walls = [], openings = [];
+  if (idx === '__all__') {
+    _ifcParsed.storeys.forEach(s => { walls.push(...s.walls); openings.push(...s.openings); });
+  } else {
+    const s = _ifcParsed.storeys[+idx];
+    if (s) { walls = s.walls; openings = s.openings; }
+  }
+
+  if (!walls.length && !openings.length) {
+    flashHint('⚠ No elements found in selected storey'); return;
+  }
+
+  // All IFC coords are in metres. Convert using m2px() which already knows
+  // the project scale. Then offset so the plan is centred on the canvas.
+  const allSegs = [...walls, ...openings];
+  const allPts  = allSegs.flatMap(s => [{x:s.x1,y:s.y1},{x:s.x2,y:s.y2}]);
+  const minX = Math.min(...allPts.map(p=>p.x));
+  const minY = Math.min(...allPts.map(p=>p.y));
+  const maxX = Math.max(...allPts.map(p=>p.x));
+  const maxY = Math.max(...allPts.map(p=>p.y));
+
+  // Convert extents to canvas pixels at current scale
+  const pxW = m2px(maxX - minX) || 1;
+  const pxH = m2px(maxY - minY) || 1;
+
+  // If the geometry is much larger than the canvas, auto-scale to fit with 10% margin
+  const fitX = canvasW * 0.8 / pxW;
+  const fitY = canvasH * 0.8 / pxH;
+  const scaleMult = Math.min(fitX, fitY, 1.0); // never upscale, only downscale
+
+  // Canvas offset: centre the plan
+  const centreOffX = (canvasW - pxW * scaleMult) / 2;
+  const centreOffY = (canvasH - pxH * scaleMult) / 2;
+
+  // IFC Y increases upward, canvas Y increases downward — flip Y axis
+  const rangeYpx = m2px(maxY - minY) * scaleMult;
+  function toCanvas(mx, my) {
+    return {
+      x: (m2px(mx - minX)) * scaleMult + centreOffX,
+      y: rangeYpx - (m2px(my - minY)) * scaleMult + centreOffY
+    };
+  }
+
+  snapshotSegments();
+  if (mode === 'replace') segments = [];
+
+  let count = 0;
+  walls.forEach(s => {
+    const p1 = toCanvas(s.x1, s.y1), p2 = toCanvas(s.x2, s.y2);
+    if (Math.hypot(p2.x-p1.x, p2.y-p1.y) < 2) return;
+    segments.push({ x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y, type:'wall' });
+    count++;
+  });
+  openings.forEach(s => {
+    const p1 = toCanvas(s.x1, s.y1), p2 = toCanvas(s.x2, s.y2);
+    if (Math.hypot(p2.x-p1.x, p2.y-p1.y) < 2) return;
+    segments.push({ x1:p1.x, y1:p1.y, x2:p2.x, y2:p2.y, type:'opening' });
+    count++;
+  });
+
+  if (simRunning) buildObstacles();
+  redrawWalls();
+
+  // ── Carve openings into walls ──────────────────────────────────────────────
+  // After importing, cut every opening out of any wall it overlaps with.
+  // We use a generous tolerance = wall thickness in pixels (typically 0.3m scaled).
+  // Run carveOpeningInWalls for each imported opening segment.
+  const importedOpenings = segments.filter(s => s.type === 'opening');
+  if (importedOpenings.length) {
+    importedOpenings.forEach(op => {
+      const ox1=op.x1, oy1=op.y1, ox2=op.x2, oy2=op.y2;
+      // Perpendicular tolerance: just enough to detect the wall line (~6px)
+      // The carve length along the wall is controlled by the opening segment itself
+      const tol = 6;
+      const newSegs = [];
+      segments.forEach(s => {
+        if (s.type === 'opening' || s.type === 'tree' ||
+            s.type === 'furn-rect' || s.type === 'furn-circ' || s.type === 'furn-poly') {
+          newSegs.push(s); return;
+        }
+        if (s.type === 'rect') {
+          const sides = [
+            {x1:s.x1,y1:s.y1,x2:s.x2,y2:s.y1,type:'wall'},
+            {x1:s.x2,y1:s.y1,x2:s.x2,y2:s.y2,type:'wall'},
+            {x1:s.x2,y1:s.y2,x2:s.x1,y2:s.y2,type:'wall'},
+            {x1:s.x1,y1:s.y2,x2:s.x1,y2:s.y1,type:'wall'},
+          ];
+          let anyCarved = false;
+          sides.forEach(side => {
+            const res = carveSegmentWithOpening(side, ox1,oy1,ox2,oy2, tol);
+            if (res.changed) anyCarved = true;
+            res.segs.forEach(ns => newSegs.push(ns));
+          });
+          if (!anyCarved) newSegs.push(s);
+          return;
+        }
+        const res = carveSegmentWithOpening(s, ox1,oy1,ox2,oy2, tol);
+        res.segs.forEach(ns => newSegs.push(ns));
+      });
+      segments = newSegs;
+    });
+
+    if (simRunning) buildObstacles();
+    redrawWalls();
+  }
+
+  triggerAutoSave();
+  closeIFCModal();
+  flashHint('✓ IFC: ' + count + ' elements imported (' + walls.length + ' walls, ' + openings.length + ' openings)');
+}
+
+
+
+// ── Image context menu ────────────────────────────────────────────────────────
+let _imgCtxTargetId = null;
+
+function showImgCtxMenu(cx, cy) {
+  const menu = document.getElementById('img-ctx-menu');
+  menu.style.left = cx + 'px';
+  menu.style.top  = cy + 'px';
+  menu.classList.add('show');
+  const r = menu.getBoundingClientRect();
+  if (r.right  > window.innerWidth)  menu.style.left = (cx - r.width)  + 'px';
+  if (r.bottom > window.innerHeight) menu.style.top  = (cy - r.height) + 'px';
+}
+
+function imgCtxAction(action) {
+  document.getElementById('img-ctx-menu').classList.remove('show');
+  const id = _imgCtxTargetId; _imgCtxTargetId = null;
+  if (!id) return;
+  if (action === 'delete') {
+    imgDelete(id);
+  } else if (action === 'lock') {
+    imgToggle(id, 'locked');
+  }
+}
+
+document.addEventListener('mousedown', e => {
+  const menu = document.getElementById('img-ctx-menu');
+  if (menu && !menu.contains(e.target)) menu.classList.remove('show');
+});
+
+
+// ════════════════════════════════════════════════════════════════════════
+//  BOX SELECTION
+//  Left→Right: fully-inside mode (window)  — accent (green)
+//  Right→Left: crossing mode (touch)       — amber
+// ════════════════════════════════════════════════════════════════════════
+let _boxSelRAF = 0;
+function _updateBoxSelRect() {
+  // Throttle to rAF — avoids redrawWalls on every mousemove pixel
+  if (_boxSelRAF) return;
+  _boxSelRAF = requestAnimationFrame(() => {
+    _boxSelRAF = 0;
+    redrawWalls();
+  });
+}
+
+function _drawBoxSelOnCanvas(ctx) {
+  if (!_boxSel) return;
+  const crossing = _boxSel.x2 < _boxSel.x1;
+  const x1 = Math.min(_boxSel.x1, _boxSel.x2);
+  const y1 = Math.min(_boxSel.y1, _boxSel.y2);
+  const w  = Math.abs(_boxSel.x2 - _boxSel.x1);
+  const h  = Math.abs(_boxSel.y2 - _boxSel.y1);
+  if (w < 2 && h < 2) return;
+
+  ctx.save();
+  if (zoomLevel > 1.0) ctx.setTransform(zoomLevel, 0, 0, zoomLevel, panX, panY);
+  ctx.strokeStyle = crossing ? '#f0a832' : '#3de8b0';
+  ctx.fillStyle   = crossing ? 'rgba(240,168,50,0.06)' : 'rgba(61,232,176,0.06)';
+  ctx.lineWidth   = 1.5 / (zoomLevel > 1 ? zoomLevel : 1);
+  ctx.setLineDash(crossing ? [6, 4] : []);
+  ctx.globalAlpha = 1;
+  ctx.fillRect(x1, y1, w, h);
+  ctx.strokeRect(x1, y1, w, h);
+  ctx.restore();
+}
+
+function _segmentBounds(s) {
+  if (s.type === 'furn-rect' || s.type === 'rect') {
+    return { x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2 };
+  }
+  if (s.type === 'tree' || s.type === 'arc' || s.type === 'poly' ||
+      s.type === 'furn-circ' || s.type === 'furn-poly') {
+    return { x1: s.cx-s.r, y1: s.cy-s.r, x2: s.cx+s.r, y2: s.cy+s.r };
+  }
+  // wall, opening, etc — line segment
+  return { x1: Math.min(s.x1,s.x2), y1: Math.min(s.y1,s.y2),
+           x2: Math.max(s.x1,s.x2), y2: Math.max(s.y1,s.y2) };
+}
+
+function _rectsOverlap(ax1,ay1,ax2,ay2, bx1,by1,bx2,by2) {
+  return ax1 <= bx2 && ax2 >= bx1 && ay1 <= by2 && ay2 >= by1;
+}
+
+function _commitBoxSelection() {
+  const box = document.getElementById('box-sel-rect');
+  if (!_boxSel) { _boxSel = null; return; }
+
+  const crossing = _boxSel.x2 < _boxSel.x1; // right-to-left
+  const bx1 = Math.min(_boxSel.x1, _boxSel.x2);
+  const by1 = Math.min(_boxSel.y1, _boxSel.y2);
+  const bx2 = Math.max(_boxSel.x1, _boxSel.x2);
+  const by2 = Math.max(_boxSel.y1, _boxSel.y2);
+  _boxSel = null;
+
+  // Ignore tiny accidental drags
+  if ((bx2-bx1) < 4 && (by2-by1) < 4) {
+    redrawWalls(); return;
+  }
+
+  selectedSet.clear(); selectedIdx = null; selectedZoneIdx = null;
+
+  segments.forEach((s, i) => {
+    const b = _segmentBounds(s);
+    let hit = false;
+    if (crossing) {
+      // Crossing: segment touches box
+      hit = _rectsOverlap(b.x1, b.y1, b.x2, b.y2, bx1, by1, bx2, by2);
+    } else {
+      // Window: segment fully inside box
+      hit = b.x1 >= bx1 && b.x2 <= bx2 && b.y1 >= by1 && b.y2 <= by2;
+    }
+    if (hit) { selectedSet.add(i); selectedIdx = i; }
+  });
+
+  redrawWalls(); drawZone(); updateDimPanel();
+  if (selectedSet.size > 0) flashHint(`✓ ${selectedSet.size} element${selectedSet.size>1?'s':''} selected`);
+}
+
+
+
+// ════════════════════════════════════════════════════════════════════════
+//  TUTORIAL SYSTEM
+// ════════════════════════════════════════════════════════════════════════
+const TUT_STEPS = [
+  {
+    title: 'Drawing Walls',
+    target: 't-wall',
+    side: 'right',
+    body: `Select the <strong>Wall</strong> tool from the sidebar (or press <code>W</code>).<br><br>
+<strong>Click and drag</strong> on the canvas to draw a wall segment. Hold <code>Shift</code> to snap to 45° angles. A live dimension label shows the wall length as you draw.<br><br>
+Use <strong>Rect</strong> <code>R</code> to draw a full room outline in one drag.`
+  },
+  {
+    title: 'Adding Openings',
+    target: 't-opening',
+    side: 'right',
+    body: `Select the <strong>Opening</strong> tool <code>O</code> to draw windows and doors.<br><br>
+Draw an opening <strong>directly on top of an existing wall</strong> — it will carve a gap so air flows through.<br><br>
+Openings appear as <span style="color:#3de8b0">dashed green lines</span>. You can also import openings from an IFC file via <code>File → Import IFC</code>.`
+  },
+  {
+    title: 'Adding Trees & Vegetation',
+    target: 't-tree',
+    side: 'right',
+    body: `Use the <strong>Tree</strong> tool <code>T</code> to place porous circular obstacles — great for modelling vegetation or columns.<br><br>
+<strong>Click the centre</strong> and <strong>drag outward</strong> to set the canopy radius. Choose density from the sidebar:<br>
+• <strong>High</strong> — dense, blocks most airflow<br>
+• <strong>Med</strong> — semi-permeable<br>
+• <strong>Low</strong> — sparse, allows most air through<br><br>
+Right-click any tree to adjust density, copy, or delete it.`
+  },
+  {
+    title: 'Spawn Line',
+    target: 't-spawn',
+    side: 'right',
+    cardMaxY: 0.45,
+    body: `The <strong>Emitter</strong> tool <code>L</code> controls where particles enter the simulation.<br><br>
+By default particles emit from the <strong>entire screen edge</strong>, which works but is slow. For faster, more focused results: switch to <strong>Line</strong> mode and drag a line on the windward side of your geometry.<br><br>
+A targeted spawn line means fewer particles cover the critical path — the simulation converges faster and flow detail is much sharper. <strong>Always place it upstream of your space.</strong>`
+  },
+  {
+    title: 'Measurement Zones',
+    target: 't-zone',
+    side: 'right',
+    cardMaxY: 0.45,
+    body: `Use the <strong>Zone Measure</strong> tool <code>Z</code> to draw measurement areas over your floor plan.<br><br>
+Choose <strong>Polygon</strong> mode (click to place vertices, double-click to close) or <strong>Rect</strong> mode (drag a rectangle).<br><br>
+Once the simulation runs, the header shows the <strong>average wind speed</strong> inside each zone. <strong>Right-click any zone</strong> to rename it.`
+  },
+  {
+    title: 'Wind Speed & Direction',
+    target: 'hdr-wind-widget',
+    side: 'bottom',
+    cardMaxY: 0.45,
+    onShow: () => {
+      // Open the wind popup for demonstration
+      const popup = document.getElementById('hdr-wind-popup');
+      if (popup && !popup.classList.contains('show')) popup.classList.add('show');
+    },
+    onHide: () => {
+      const popup = document.getElementById('hdr-wind-popup');
+      if (popup) popup.classList.remove('show');
+    },
+    body: `The <strong>wind widget</strong> in the header lets you set direction and speed at a glance — no need to scroll the sidebar.<br><br>
+Click the compass in the header to open it. Use the <strong>9-button grid</strong> to set direction, and the <strong>speed slider</strong> below it to adjust intensity (in m/s).<br><br>
+Changes apply instantly. The arrow rotates to show the current direction.`
+  },
+  {
+    title: 'Running the Simulation',
+    target: 'run-btn',
+    side: 'left',
+    body: `Press <strong>RUN SIM</strong> to start the airflow simulation. Particles stream from the spawn edge following the pressure gradient through your space.<br><br>
+Press <strong>PAUSE</strong> at any time to freeze and inspect the flow field. The <strong>pressure overlay</strong> (View menu) shows high/low pressure zones in colour.<br><br>
+Use <strong>Flow Vectors</strong> (View menu) to see velocity direction arrows across the grid. Zoom in with the scroll wheel to trace fine details.`
+  }
+];
+
+let _tutStep = 0;
+
+function openTutorial(step) {
+  _tutStep = step ?? 0;
+  document.getElementById('tut-overlay').classList.add('show');
+  _renderTutStep();
+}
+
+function closeTutorial() {
+  if (TUT_STEPS[_tutStep]?.onHide) TUT_STEPS[_tutStep].onHide();
+  document.getElementById('tut-overlay').classList.remove('show');
+  _clearSpotlight();
+}
+
+function tutNav(dir) {
+  // Call onHide for the current step before leaving
+  if (TUT_STEPS[_tutStep]?.onHide) TUT_STEPS[_tutStep].onHide();
+  _tutStep = Math.max(0, Math.min(TUT_STEPS.length - 1, _tutStep + dir));
+  _renderTutStep();
+}
+
+function _renderTutStep() {
+  const step = TUT_STEPS[_tutStep];
+  const total = TUT_STEPS.length;
+
+  // Badge
+  document.getElementById('tut-badge').textContent = `Step ${_tutStep + 1} of ${total}`;
+
+  // Progress pips
+  const prog = document.getElementById('tut-progress');
+  prog.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const pip = document.createElement('div');
+    pip.className = 'tut-pip' + (i < _tutStep ? ' done' : i === _tutStep ? ' active' : '');
+    prog.appendChild(pip);
+  }
+
+  // Content (re-animate card)
+  const card = document.getElementById('tut-card');
+  card.style.animation = 'none';
+  card.offsetHeight; // reflow
+  card.style.animation = '';
+
+  document.getElementById('tut-title').textContent = step.title;
+  document.getElementById('tut-body').innerHTML = step.body;
+  // Run step-specific side effect (e.g. scroll sidebar)
+  if (step.onShow) setTimeout(step.onShow, 50);
+
+  // Buttons
+  document.getElementById('tut-prev').style.visibility = _tutStep === 0 ? 'hidden' : 'visible';
+  const nextBtn = document.getElementById('tut-next');
+  if (_tutStep === total - 1) {
+    nextBtn.textContent = 'Done ✓';
+    nextBtn.onclick = closeTutorial;
+  } else {
+    nextBtn.textContent = 'Next →';
+    nextBtn.onclick = () => tutNav(1);
+  }
+
+  // Spotlight + position card
+  _spotlightTarget(step.target, step.side, step);
+}
+
+function _clearSpotlight() {
+  ['tut-bd-top','tut-bd-bot','tut-bd-left','tut-bd-right'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.top=''; el.style.left=''; el.style.width='0'; el.style.height='0'; }
+  });
+}
+
+function _spotlightTarget(targetId, cardSide, step={}) {
+  const target = document.getElementById(targetId);
+  const overlay = document.getElementById('tut-overlay');
+  const card = document.getElementById('tut-card');
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  let rx = 0, ry = 0, rw = vw, rh = vh; // fallback: full screen (no spotlight)
+  const PAD = 8;
+
+  if (target) {
+    const r = target.getBoundingClientRect();
+    rx = Math.max(0, r.left - PAD);
+    ry = Math.max(0, r.top  - PAD);
+    rw = Math.min(vw - rx, r.width  + PAD * 2);
+    rh = Math.min(vh - ry, r.height + PAD * 2);
+
+
+  }
+
+  // Set 4 backdrop panels
+  const bd = {
+    top:   { top:0,      left:0,       width:vw,         height:ry },
+    bot:   { top:ry+rh,  left:0,       width:vw,         height:Math.max(0,vh-ry-rh) },
+    left:  { top:ry,     left:0,       width:rx,         height:rh },
+    right: { top:ry,     left:rx+rw,   width:Math.max(0,vw-rx-rw), height:rh }
+  };
+  Object.entries(bd).forEach(([k,v]) => {
+    const el = document.getElementById('tut-bd-' + k);
+    if (!el) return;
+    Object.assign(el.style, {
+      top:    v.top    + 'px',
+      left:   v.left   + 'px',
+      width:  v.width  + 'px',
+      height: v.height + 'px'
+    });
+  });
+
+  // Position card
+  const CARD_W = 320, CARD_H = 300, MARGIN = 16;
+  let cx = 0, cy = 0;
+
+  if (cardSide === 'right') {
+    cx = rx + rw + MARGIN;
+    cy = ry + rh / 2 - CARD_H / 2;
+    // If goes off right edge, flip to left
+    if (cx + CARD_W > vw - MARGIN) cx = rx - CARD_W - MARGIN;
+  } else if (cardSide === 'left') {
+    cx = rx - CARD_W - MARGIN;
+    cy = ry + rh / 2 - CARD_H / 2;
+    if (cx < MARGIN) cx = rx + rw + MARGIN;
+  } else if (cardSide === 'bottom') {
+    cx = rx + rw / 2 - CARD_W / 2;
+    cy = ry + rh + MARGIN;
+  } else { // top or fallback
+    cx = rx + rw / 2 - CARD_W / 2;
+    cy = ry - CARD_H - MARGIN;
+  }
+
+  // Clamp to viewport, respecting optional cardMaxY (fraction of vh)
+  cx = Math.max(MARGIN, Math.min(vw - CARD_W - MARGIN, cx));
+  const maxCy = step.cardMaxY ? Math.floor(vh * step.cardMaxY) : vh - CARD_H - MARGIN;
+  cy = Math.max(MARGIN, Math.min(maxCy, cy));
+
+  card.style.left = cx + 'px';
+  card.style.top  = cy + 'px';
+}
+
+// Close on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('tut-overlay')?.classList.contains('show')) {
+    closeTutorial();
+  }
+});
 
 // ════════════════════════════════════════════════════════════════════════
 //  CLOUD SAVE / LOAD — BEM Studio Supabase integration
@@ -5895,6 +8119,76 @@ document.addEventListener('keydown', e => {
   }
 });
 
+
+// ── Cursor tool label ─────────────────────────────────────────────────────────
+const _cursorToolNames = {
+  wall:'WALL', rect:'RECT', arc:'ARC', poly:'POLY',
+  opening:'OPENING', tree:'TREE', eraser:'ERASER',
+  select:'SELECT', spawn:'EMITTER', zone:'ZONE', furn:'FURNITURE', screen:'SCREEN'
+};
+
+document.addEventListener('mousemove', e => {
+  const lbl = document.getElementById('cursor-tool-label');
+  const canvas = document.getElementById('canvas-area');
+  if (!lbl || !canvas) return;
+  // Only show after welcome screen is dismissed
+  const overlay = document.getElementById('welcome-overlay');
+  if (overlay && !overlay.classList.contains('hidden')) { lbl.style.display='none'; return; }
+  const rect = canvas.getBoundingClientRect();
+  const inCanvas = e.clientX >= rect.left && e.clientX <= rect.right &&
+                   e.clientY >= rect.top  && e.clientY <= rect.bottom;
+  if (inCanvas) {
+    lbl.style.display = 'block';
+    lbl.style.left = (e.clientX + 16) + 'px';
+    lbl.style.top  = (e.clientY + 12) + 'px';
+    lbl.textContent = _cursorToolNames[tool] || tool.toUpperCase();
+  } else {
+    lbl.style.display = 'none';
+  }
+});
+
+document.getElementById('canvas-area').addEventListener('mouseleave', () => {
+  const lbl = document.getElementById('cursor-tool-label');
+  if (lbl) lbl.style.display = 'none';
+});
+
+
+
+// ── Sidebar resize drag ───────────────────────────────────────────────────────
+(function(){
+  const handle = document.getElementById('sidebar-resize-handle');
+  const sidebar = document.getElementById('sidebar-left');
+  if (!handle || !sidebar) return;
+  let dragging = false, startX = 0, startW = 0;
+
+  handle.addEventListener('mousedown', e => {
+    if (!sidebarVisible) return;
+    dragging = true;
+    startX = e.clientX;
+    startW = sidebar.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const delta = e.clientX - startX;
+    const newW = Math.min(380, Math.max(140, startW + delta));
+    sidebar.style.width = newW + 'px';
+    positionCanvasOverlays();
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
 </script>
 
 <!-- CLOUD SAVE AS NEW VERSION MODAL -->
@@ -5908,6 +8202,83 @@ document.addEventListener('keydown', e => {
       <button class="cm-btn" onclick="closeCloudModal()">Cancel</button>
       <button class="cm-btn primary" id="cm-btn-saveas" onclick="cloudConfirmSaveAs()">Save</button>
       <button class="cm-btn primary" id="cm-btn-overwrite" style="display:none">Overwrite</button>
+    </div>
+  </div>
+</div>
+
+<div id="cursor-tool-label"></div>
+
+<!-- IMAGE MANAGER PANEL -->
+<div class="img-manager" id="img-manager">
+  <div class="img-mgr-hdr">
+    <span>Reference Images</span>
+    <button class="img-mgr-close" onclick="closeImageManager()">✕</button>
+  </div>
+  <div class="img-mgr-body" id="img-mgr-body">
+    <div class="img-mgr-empty" id="img-mgr-empty">No images loaded.<br>Import an image from File menu.</div>
+  </div>
+  <div class="img-mgr-footer" style="flex-direction:column;gap:6px;">
+    <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--dim);letter-spacing:0.08em;text-align:center;">
+      Close this panel to drag images on the canvas
+    </div>
+    <button class="img-add-btn" onclick="document.getElementById('file-load-image').click()">+ Import Image</button>
+  </div>
+</div>
+
+<!-- IFC IMPORT MODAL -->
+<div class="ifc-modal-overlay" id="ifc-modal-overlay">
+  <div class="ifc-modal">
+    <div class="ifc-title">Import IFC — Walls &amp; Openings</div>
+    <div class="ifc-note">
+      Extracts walls and door/window openings from an IFC 2x3 or IFC4 file.<br>
+      Curved walls and complex geometry may be approximated.<br>
+      Coordinates are imported at 1:1 metres.
+    </div>
+    <div class="ifc-note" style="border-left-color:#f0a832;margin-top:8px;">
+      ⚡ <strong style="color:#f0a832">Tip:</strong> For best results, export your model as <strong>IFC 2x3</strong> from your BIM software. IFC4 is supported but may produce less accurate results depending on the exporter.
+    </div>
+    <div class="ifc-field">
+      <label class="ifc-lbl">Storey / Floor level</label>
+      <select class="ifc-select" id="ifc-storey-select">
+        <option value="__all__">All storeys</option>
+      </select>
+    </div>
+    <div class="ifc-field">
+      <label class="ifc-lbl">What to do with existing geometry</label>
+      <div class="ifc-radio-row">
+        <label class="ifc-radio-opt">
+          <input type="radio" name="ifc-mode" value="add" checked> Add on top
+        </label>
+        <label class="ifc-radio-opt">
+          <input type="radio" name="ifc-mode" value="replace"> Replace all
+        </label>
+      </div>
+    </div>
+    <div class="ifc-btns">
+      <button class="ifc-btn" onclick="closeIFCModal()">Cancel</button>
+      <button class="ifc-btn primary" onclick="commitIFCImport()">Import</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- TUTORIAL OVERLAY -->
+<div class="tut-overlay" id="tut-overlay">
+  <!-- 4 backdrop panels for spotlight effect -->
+  <div class="tut-backdrop" id="tut-bd-top"></div>
+  <div class="tut-backdrop" id="tut-bd-bot"></div>
+  <div class="tut-backdrop" id="tut-bd-left"></div>
+  <div class="tut-backdrop" id="tut-bd-right"></div>
+  <!-- Tutorial card -->
+  <div class="tut-card" id="tut-card">
+    <button class="tut-close" onclick="closeTutorial()">✕</button>
+    <div class="tut-step-badge" id="tut-badge">Step 1 of 5</div>
+    <div class="tut-progress" id="tut-progress"></div>
+    <div class="tut-title" id="tut-title"></div>
+    <div class="tut-body" id="tut-body"></div>
+    <div class="tut-actions">
+      <button class="tut-btn" id="tut-prev" onclick="tutNav(-1)">← Back</button>
+      <button class="tut-btn primary" id="tut-next" onclick="tutNav(1)">Next →</button>
     </div>
   </div>
 </div>

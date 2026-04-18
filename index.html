@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BEM Studio — Indoor CFD Wind Simulation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -487,6 +488,124 @@
     color:var(--dim); text-align:center;
   }
 
+
+  /* ── CREATOR SECTION ── */
+  .creator-section {
+    position: relative; z-index: 1;
+    padding: 100px 40px;
+    border-bottom: 1px solid var(--border);
+  }
+  .creator-inner {
+    max-width: 960px; margin: 0 auto;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 72px;
+    align-items: center;
+  }
+  @media (max-width: 768px) {
+    .creator-inner { grid-template-columns: 1fr; gap: 40px; }
+    .creator-photo-wrap { max-width: 500px; margin: 0 auto; }
+  }
+  .creator-photo-wrap {
+    position: relative;
+  }
+  .creator-photo-wrap::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--accent) 0%, transparent 60%);
+    opacity: 0.35;
+    z-index: 0;
+  }
+  .creator-photo-wrap::after {
+    content: '';
+    position: absolute;
+    top: 16px; left: 16px; right: -16px; bottom: -16px;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    z-index: -1;
+  }
+  .creator-photo {
+    width: 100%;
+    display: block;
+    border-radius: 4px;
+    filter: grayscale(20%) contrast(1.05);
+    position: relative; z-index: 1;
+  }
+  .creator-quote-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .creator-quote-mark {
+    font-family: 'Syne', sans-serif;
+    font-size: 72px;
+    line-height: 0.6;
+    color: var(--accent);
+    opacity: 0.4;
+    margin-bottom: -8px;
+    user-select: none;
+  }
+  .creator-quote {
+    font-size: 17px;
+    line-height: 1.78;
+    color: var(--text);
+    font-style: italic;
+    font-weight: 400;
+  }
+  .creator-quote em {
+    font-style: normal;
+    color: var(--text-bright);
+    font-weight: 600;
+  }
+  .creator-sig {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .creator-sig-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+  .creator-sig-name:hover { opacity: 0.75; }
+  .creator-sig-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+
+
+  /* Personalised nav */
+  .nav-user { display:flex; align-items:center; gap:12px; }
+  .nav-username { font-family:'Space Mono',monospace; font-size:9px; color:var(--dim); letter-spacing:0.1em; }
+  .nav-username span { color:var(--accent); }
+  .nav-signout {
+    font-family:'Space Mono',monospace; font-size:9px; font-weight:700;
+    letter-spacing:0.12em; text-transform:uppercase; color:var(--dim);
+    background:transparent; border:1px solid var(--border2); border-radius:4px;
+    padding:5px 10px; cursor:pointer; text-decoration:none;
+    transition:color 0.15s, border-color 0.15s;
+  }
+  .nav-signout:hover { color:var(--red); border-color:var(--red); }
+  .nav-open-sim {
+    font-family:'Space Mono',monospace; font-size:9px; font-weight:700;
+    letter-spacing:0.15em; text-transform:uppercase; color:var(--bg);
+    background:var(--accent); text-decoration:none; padding:8px 18px;
+    border-radius:4px; transition:opacity 0.15s;
+  }
+  .nav-open-sim:hover { opacity:0.88; }
+
 </style>
 </head>
 <body>
@@ -501,7 +620,7 @@
   <div class="nav-links">
     <a href="#capabilities" class="nav-link">Features</a>
     <a href="#how" class="nav-link">How it works</a>
-    <a href="signup.html" class="nav-cta">Get Access →</a>
+    <div id="nav-auth-area"><a href="signup.html" class="nav-cta">Get Access →</a></div>
   </div>
 </nav>
 
@@ -555,6 +674,31 @@
   </div>
 </div>
 
+
+<!-- CREATOR MESSAGE -->
+<section class="creator-section">
+  <div class="creator-inner">
+
+    <div class="creator-photo-wrap reveal">
+      <img src="images/profilepic.jpg" alt="Islam Mashaly" class="creator-photo">
+    </div>
+
+    <div class="creator-quote-wrap reveal">
+      <div class="creator-quote-mark">"</div>
+      <p class="creator-quote">
+        I built this tool for <em>architecture students and practitioners</em> who need to make quick, informed decisions about natural ventilation — without the overhead of professional CFD software.<br><br>
+        Full CFD tools are powerful but complex. They demand significant setup time, technical expertise, and hardware resources that most design studios simply don't have during <em>early-stage exploration</em>. I wanted to change that.<br><br>
+        BEM Studio is focused on getting you <em>meaningful results in under two minutes</em> — draw your floor plan, set a wind direction, and immediately see how air moves through the space. The environment is interactive by design: adjust a wall, open a window, add vegetation, and watch the flow respond in real time.<br><br>
+        It isn't a substitute for rigorous CFD analysis, and it doesn't pretend to be. But for <em>early design decisions</em> — comparing ventilation strategies, identifying stagnant zones, understanding cross-ventilation potential — it gives you a fast, visual, intuitive starting point.
+      </p>
+      <div class="creator-sig">
+        <a href="https://www.linkedin.com/in/islam-mashaly-phd/" target="_blank" rel="noopener" class="creator-sig-name">Islam Mashaly</a>
+        <span class="creator-sig-title">Ph.D. in Architecture and Built Environment - Founder of BEM Studio</span>
+      </div>
+    </div>
+
+  </div>
+</section>
 
 <!-- SCREENSHOTS SLIDESHOW -->
 <section class="slideshow-section">
@@ -906,5 +1050,35 @@ const observer = new IntersectionObserver(entries => {
 }, { threshold: 0.12 });
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 </script>
+
+<script>
+// ── Personalised nav: check for existing Supabase session ─────────────────
+(function(){
+  const SUPABASE_URL  = 'https://ozcfpvwgvpclvagefhnk.supabase.co';
+  const SUPABASE_ANON = 'sb_publishable_DWOx7lVVcDUtrlFGjQEgbQ_uHhUistO';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) return;
+    const user     = session.user;
+    const username = user.user_metadata?.username || user.email;
+    const area     = document.getElementById('nav-auth-area');
+    if (!area) return;
+    area.innerHTML = `
+      <div class="nav-user">
+        <span class="nav-username">Hi, <span>${username}</span></span>
+        <a href="simulator.html" class="nav-open-sim">Open Simulator →</a>
+        <a href="#" class="nav-signout" id="nav-signout-btn">Sign out</a>
+      </div>`;
+    document.getElementById('nav-signout-btn').addEventListener('click', async (e) => {
+      e.preventDefault();
+      await sb.auth.signOut();
+      window.location.reload();
+    });
+  });
+})();
+</script>
+
 </body>
 </html>
