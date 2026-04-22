@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bernoulli Tube — Interactive</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+:root {
+  --bg: #080a0f;
+  --surface: #0f1219;
+  --panel: #141820;
+  --border: #1e2535;
+  --border2: #2a3348;
+  --accent: #3de8b0;
+  --amber: #f0a832;
+  --red: #f04860;
+  --blue: #4899ff;
+  --text: #b8c8e0;
+  --dim: #4a5570;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HEADER ── */
+header {
+  height: 44px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.logo { font-family:'Space Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.22em; color:var(--accent); text-transform:uppercase; }
+.hdr-sep { width:1px; height:18px; background:var(--border); }
+.hdr-title { font-size:13px; font-weight:600; color:var(--text); }
+.hdr-sub { font-family:'Space Mono',monospace; font-size:8px; color:var(--dim); letter-spacing:0.1em; }
+
+.hdr-badge {
+  margin-left:auto;
+  font-family:'Space Mono',monospace;
+  font-size:8px; font-weight:700;
+  letter-spacing:0.12em;
+  padding:3px 10px;
+  border-radius:3px;
+  border:1px solid var(--border2);
+  color:var(--dim);
+  text-transform:uppercase;
+}
+
+/* ── MAIN LAYOUT ── */
+#main {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+
+/* ── CANVAS ── */
+#canvas-wrap {
+  flex:1;
+  position:relative;
+  overflow:hidden;
+}
+
+#canvas-wrap canvas {
+  position:absolute;
+  top:0; left:0;
+}
+
+/* ── GAUGES PANEL ── */
+#gauges {
+  display:flex;
+  align-items:stretch;
+  gap:0;
+  height:130px;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+
+.gauge-zone {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:10px 16px;
+  border-right:1px solid var(--border);
+  position:relative;
+  transition:background 0.3s;
+}
+.gauge-zone:last-child { border-right:none; }
+.gauge-zone:hover { background:rgba(255,255,255,0.02); }
+
+.gz-label {
+  font-family:'Space Mono',monospace;
+  font-size:8px; font-weight:700;
+  letter-spacing:0.15em;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+
+.gz-bars {
+  display:flex;
+  gap:12px;
+  align-items:flex-end;
+  height:54px;
+  margin-bottom:8px;
+}
+
+.gz-bar-wrap {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+
+.gz-bar-track {
+  width:18px;
+  height:48px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border2);
+  border-radius:3px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+}
+
+.gz-bar-fill {
+  width:100%;
+  border-radius:2px;
+  transition:height 0.25s ease, background 0.25s ease;
+}
+
+.gz-bar-lbl {
+  font-family:'Space Mono',monospace;
+  font-size:7px;
+  color:var(--dim);
+  text-align:center;
+}
+
+.gz-values {
+  display:flex;
+  gap:14px;
+}
+
+.gz-val-item {
+  text-align:center;
+}
+
+.gz-val-num {
+  font-family:'Space Mono',monospace;
+  font-size:13px;
+  font-weight:700;
+  line-height:1;
+  margin-bottom:2px;
+}
+
+.gz-val-unit {
+  font-family:'Space Mono',monospace;
+  font-size:7px;
+  color:var(--dim);
+  letter-spacing:0.08em;
+}
+
+.zone-tag {
+  position:absolute;
+  top:8px; right:10px;
+  font-family:'Space Mono',monospace;
+  font-size:7px;
+  font-weight:700;
+  letter-spacing:0.1em;
+  padding:2px 6px;
+  border-radius:2px;
+  text-transform:uppercase;
+}
+.tag-wide { background:rgba(61,232,176,0.12); color:var(--accent); border:1px solid rgba(61,232,176,0.25); }
+.tag-narrow { background:rgba(240,72,96,0.12); color:var(--red); border:1px solid rgba(240,72,96,0.25); }
+
+/* ── CONTROLS ── */
+#controls {
+  height:48px;
+  background:var(--panel);
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 20px;
+  gap:20px;
+  flex-shrink:0;
+}
+
+.ctrl-group {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.ctrl-label {
+  font-family:'Space Mono',monospace;
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:0.1em;
+  color:var(--dim);
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.ctrl-val {
+  font-family:'Space Mono',monospace;
+  font-size:9px;
+  font-weight:700;
+  color:var(--accent);
+  min-width:32px;
+}
+
+input[type=range] {
+  -webkit-appearance:none;
+  height:3px;
+  background:var(--border2);
+  border-radius:2px;
+  outline:none;
+  width:100px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none;
+  width:12px; height:12px;
+  border-radius:50%;
+  background:var(--accent);
+  cursor:pointer;
+}
+
+.sep { width:1px; height:24px; background:var(--border); }
+
+.toggle-btn {
+  font-family:'Space Mono',monospace;
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:0.1em;
+  padding:5px 12px;
+  border-radius:4px;
+  border:1px solid var(--border2);
+  background:var(--panel);
+  color:var(--dim);
+  cursor:pointer;
+  transition:all 0.15s;
+  text-transform:uppercase;
+}
+.toggle-btn.on { border-color:var(--accent); color:var(--accent); background:rgba(61,232,176,0.08); }
+.toggle-btn:hover { border-color:var(--text); color:var(--text); }
+
+/* ── ANNOTATION CALLOUT ── */
+.callout {
+  position:absolute;
+  background:rgba(9,12,20,0.9);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  padding:10px 14px;
+  font-size:11px;
+  line-height:1.6;
+  max-width:180px;
+  pointer-events:none;
+  backdrop-filter:blur(8px);
+  z-index:50;
+  opacity:0;
+  transition:opacity 0.3s;
+}
+.callout.show { opacity:1; }
+.callout strong { color:var(--accent); }
+.callout em { color:var(--amber); font-style:normal; }
+.callout .co-title {
+  font-family:'Space Mono',monospace;
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+
+/* ── BERNOULLI EQUATION DISPLAY ── */
+#equation {
+  position:absolute;
+  top:14px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(9,12,20,0.88);
+  border:1px solid var(--border2);
+  border-radius:8px;
+  padding:9px 18px;
+  font-family:'Space Mono',monospace;
+  font-size:10px;
+  color:var(--dim);
+  white-space:nowrap;
+  z-index:50;
+  backdrop-filter:blur(8px);
+  letter-spacing:0.05em;
+  pointer-events:none;
+}
+
+#equation .eq-accent { color:var(--accent); }
+#equation .eq-amber  { color:var(--amber); }
+#equation .eq-red    { color:var(--red); }
+
+/* ── THROAT RATIO INDICATOR ── */
+#ratio-badge {
+  position:absolute;
+  top:14px;
+  right:20px;
+  background:rgba(9,12,20,0.88);
+  border:1px solid var(--border2);
+  border-radius:6px;
+  padding:6px 12px;
+  font-family:'Space Mono',monospace;
+  font-size:8px;
+  color:var(--dim);
+  z-index:50;
+  backdrop-filter:blur(8px);
+  pointer-events:none;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+}
+
+#ratio-badge span { color:var(--amber); font-weight:700; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Wind Flow</div>
+  <div class="hdr-sep"></div>
+  <div>
+    <div class="hdr-title">Bernoulli Tube</div>
+    <div class="hdr-sub">INTERACTIVE PHYSICS DEMO</div>
+  </div>
+  <div class="hdr-sep"></div>
+  <div style="font-size:11px;color:var(--dim);max-width:380px;line-height:1.5;">
+    Air speeds up through the narrow throat — and pressure <em style="color:var(--accent);font-style:normal;">drops</em>. Drag the slider to squeeze the tube.
+  </div>
+  <div class="hdr-badge">Bernoulli's Principle</div>
+</header>
+
+<div id="main">
+  <div id="canvas-wrap">
+    <canvas id="c-bg"></canvas>
+    <canvas id="c-tube"></canvas>
+    <canvas id="c-pres"></canvas>
+    <canvas id="c-parts"></canvas>
+    <canvas id="c-ui"></canvas>
+
+    <!-- Equation -->
+    <div id="equation">
+      P + ½ρv² = const &nbsp;·&nbsp;
+      <span class="eq-accent">↑v</span> at throat →
+      <span class="eq-red">↓P</span> &nbsp;·&nbsp;
+      <span class="eq-amber">↑P</span> wide sections
+    </div>
+
+    <!-- Throat ratio badge -->
+    <div id="ratio-badge">Throat ratio: <span id="ratio-val">40%</span></div>
+
+    <!-- Callouts -->
+    <div class="callout" id="co-left" style="left:4%;top:50%;transform:translateY(-50%)">
+      <div class="co-title">Inlet</div>
+      <strong>Low velocity</strong><br>
+      <em>High pressure</em><br>
+      Wide cross-section → air moves slowly
+    </div>
+    <div class="callout" id="co-throat" style="left:50%;transform:translateX(-50%);top:8px">
+      <div class="co-title">Throat</div>
+      <strong style="color:var(--red)">High velocity</strong><br>
+      <em style="color:var(--blue)">Low pressure</em><br>
+      Narrow section → air must speed up
+    </div>
+    <div class="callout" id="co-right" style="right:4%;top:50%;transform:translateY(-50%)">
+      <div class="co-title">Outlet</div>
+      <strong>Low velocity</strong><br>
+      <em>High pressure</em><br>
+      Widens again → slows down, pressure recovers
+    </div>
+  </div>
+
+  <!-- Gauges -->
+  <div id="gauges">
+    <!-- Zone A: wide inlet -->
+    <div class="gauge-zone" id="gz-a">
+      <div class="zone-tag tag-wide">INLET</div>
+      <div class="gz-label" style="color:var(--accent)">Wide Section A</div>
+      <div class="gz-bars">
+        <div class="gz-bar-wrap">
+          <div class="gz-bar-track">
+            <div class="gz-bar-fill" id="bar-a-p" style="height:70%;background:var(--amber)"></div>
+          </div>
+          <div class="gz-bar-lbl">P</div>
+        </div>
+        <div class="gz-bar-wrap">
+          <div class="gz-bar-track">
+            <div class="gz-bar-fill" id="bar-a-v" style="height:30%;background:var(--accent)"></div>
+          </div>
+          <div class="gz-bar-lbl">V</div>
+        </div>
+      </div>
+      <div class="gz-values">
+        <div class="gz-val-item">
+          <div class="gz-val-num" id="val-a-p" style="color:var(--amber)">—</div>
+          <div class="gz-val-unit">PRESSURE</div>
+        </div>
+        <div class="gz-val-item">
+          <div class="gz-val-num" id="val-a-v" style="color:var(--accent)">—</div>
+          <div class="gz-val-unit">m/s</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zone B: throat -->
+    <div class="gauge-zone" id="gz-b">
+      <div class="zone-tag tag-narrow">THROAT</div>
+      <div class="gz-label" style="color:var(--red)">Narrow Throat B</div>
+      <div class="gz-bars">
+        <div class="gz-bar-wrap">
+          <div class="gz-bar-track">
+            <div class="gz-bar-fill" id="bar-b-p" style="height:20%;background:var(--blue)"></div>
+          </div>
+          <div class="gz-bar-lbl">P</div>
+        </div>
+        <div class="gz-bar-wrap">
+          <div class="gz-bar-track">
+            <div class="gz-bar-fill" id="bar-b-v" style="height:80%;background:var(--red)"></div>
+          </div>
+          <div class="gz-bar-lbl">V</div>
+        </div>
+      </div>
+      <div class="gz-values">
+        <div class="gz-val-item">
+          <div class="gz-val-num" id="val-b-p" style="color:var(--blue)">—</div>
+          <div class="gz-val-unit">PRESSURE</div>
+        </div>
+        <div class="gz-val-item">
+          <div class="gz-val-num" id="val-b-v" style="color:var(--red)">—</div>
+          <div class="gz-val-unit">m/s</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zone C: wide outlet -->
+    <div class="gauge-zone" id="gz-c">
+      <div class="zone-tag tag-wide">OUTLET</div>
+      <div class="gz-label" style="color:var(--accent)">Wide Section C</div>
+      <div class="gz-bars">
+        <div class="gz-bar-wrap">
+          <div class="gz-bar-track">
+            <div class="gz-bar-fill" id="bar-c-p" style="height:70%;background:var(--amber)"></div>
+          </div>
+          <div class="gz-bar-lbl">P</div>
+        </div>
+        <div class="gz-bar-wrap">
+          <div class="gz-bar-track">
+            <div class="gz-bar-fill" id="bar-c-v" style="height:30%;background:var(--accent)"></div>
+          </div>
+          <div class="gz-bar-lbl">V</div>
+        </div>
+      </div>
+      <div class="gz-values">
+        <div class="gz-val-item">
+          <div class="gz-val-num" id="val-c-p" style="color:var(--amber)">—</div>
+          <div class="gz-val-unit">PRESSURE</div>
+        </div>
+        <div class="gz-val-item">
+          <div class="gz-val-num" id="val-c-v" style="color:var(--accent)">—</div>
+          <div class="gz-val-unit">m/s</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">Flow Speed</span>
+      <input type="range" min="2" max="12" value="6" step="0.5"
+        oninput="setFlowSpeed(+this.value)" id="sl-speed">
+      <span class="ctrl-val" id="lbl-speed">6 m/s</span>
+    </div>
+    <div class="sep"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Throat Size</span>
+      <input type="range" min="15" max="65" value="40" step="1"
+        oninput="setThroat(+this.value)" id="sl-throat">
+      <span class="ctrl-val" id="lbl-throat">40%</span>
+    </div>
+    <div class="sep"></div>
+    <button class="toggle-btn on" id="btn-pressure" onclick="toggleLayer('pressure')">Pressure</button>
+    <button class="toggle-btn on" id="btn-vectors"  onclick="toggleLayer('vectors')">Vectors</button>
+    <button class="toggle-btn on" id="btn-labels"   onclick="toggleLayer('labels')">Labels</button>
+    <div class="sep"></div>
+    <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--dim);line-height:1.5;">
+      A<sub>1</sub>v<sub>1</sub> = A<sub>2</sub>v<sub>2</sub> &nbsp;(continuity)<br>
+      P<sub>1</sub> + ½ρv<sub>1</sub>² = P<sub>2</sub> + ½ρv<sub>2</sub>²
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  CANVAS SETUP
+// ═══════════════════════════════════════════════════
+const wrap   = document.getElementById('canvas-wrap');
+const cBg    = document.getElementById('c-bg');
+const cTube  = document.getElementById('c-tube');
+const cPres  = document.getElementById('c-pres');
+const cParts = document.getElementById('c-parts');
+const cUi    = document.getElementById('c-ui');
+const ctxBg    = cBg.getContext('2d');
+const ctxTube  = cTube.getContext('2d');
+const ctxPres  = cPres.getContext('2d');
+const ctxParts = cParts.getContext('2d');
+const ctxUi    = cUi.getContext('2d');
+
+let W = 0, H = 0;
+
+// ═══════════════════════════════════════════════════
+//  SIMULATION PARAMS
+// ═══════════════════════════════════════════════════
+let flowSpeed   = 6;      // inlet velocity (m/s)
+let throatPct   = 0.40;   // throat height as fraction of tube height
+let showPressure = true;
+let showVectors  = true;
+let showLabels   = true;
+
+// Tube geometry (set in resize)
+let tubeY1, tubeY2;       // top/bottom of tube at inlet
+let throatCx;             // x-centre of throat
+const THROAT_WIDTH = 0.18; // fraction of canvas width
+
+// ═══════════════════════════════════════════════════
+//  TUBE PROFILE
+//  Returns {top, bottom} y-coordinates at given x
+// ═══════════════════════════════════════════════════
+function tubeProfile(x) {
+  const wideH  = tubeY2 - tubeY1;             // full tube height
+  const tH     = wideH * throatPct;            // throat height
+  const margin = (wideH - tH) / 2;
+
+  const cx   = throatCx;
+  const hw   = W * THROAT_WIDTH;              // half-width of transition zone
+
+  // smooth cosine taper
+  const dist = Math.abs(x - cx);
+  const t    = Math.max(0, Math.min(1, 1 - dist / hw));
+  const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t; // smoothstep
+
+  const shrink = margin * ease;
+  return {
+    top:    tubeY1 + shrink,
+    bottom: tubeY2 - shrink,
+  };
+}
+
+// ═══════════════════════════════════════════════════
+//  LOCAL VELOCITY — continuity: A1*v1 = A2*v2
+// ═══════════════════════════════════════════════════
+function localVelocity(x) {
+  const wideH = tubeY2 - tubeY1;
+  const p     = tubeProfile(x);
+  const localH = p.bottom - p.top;
+  return flowSpeed * (wideH / localH);
+}
+
+// Local pressure via Bernoulli: P = P0 + ½ρ(v0²-v²)
+const RHO  = 1.225; // kg/m³
+const P_ATM = 101325;
+function localPressure(x) {
+  const v0 = flowSpeed;
+  const v  = localVelocity(x);
+  return P_ATM + 0.5 * RHO * (v0*v0 - v*v);
+}
+
+// ═══════════════════════════════════════════════════
+//  PARTICLES
+// ═══════════════════════════════════════════════════
+const NUM_PARTICLES = 280;
+let particles = [];
+
+function mkParticle(stagger) {
+  const x = stagger ? Math.random() * W : -10;
+  const lane = 0.05 + Math.random() * 0.90;
+  const p = tubeProfile(x);
+  const y = p.top + lane * (p.bottom - p.top);
+  return {
+    x, y, lane,
+    vx: 0, vy: 0,
+    trail: [],
+    size: 1.0 + Math.random()*1.2,
+    life: 0,
+    maxLife: 200 + Math.random()*240,
+  };
+}
+
+function initParticles() {
+  particles = [];
+  for (let i=0; i<NUM_PARTICLES; i++) {
+    particles.push(mkParticle(true));
+  }
+}
+
+function lerp(a,b,t){ return a+(b-a)*t; }
+
+function stepParticles() {
+  const dt = 1;
+  for (let i=0; i<particles.length; i++) {
+    const p = particles[i];
+    const profile = tubeProfile(p.x);
+
+    // Local velocity (x-direction)
+    const vLocal = localVelocity(p.x);
+
+    // Blend toward local x-velocity
+    p.vx += (vLocal - p.vx) * 0.18;
+
+    // Y: each particle follows its lane fraction across the tube cross-section
+    // As the tube narrows the lane target moves with the wall — particle is carried with it
+    const laneTarget = profile.top + p.lane * (profile.bottom - profile.top);
+    const distFromLane = p.y - laneTarget;
+    p.vy += -distFromLane * 0.12;   // spring toward lane position
+    p.vy *= 0.80;                   // damp
+
+    // Small turbulence — enough to look organic, not enough to push across lanes
+    p.vx += (Math.random()-0.5) * 0.10;
+    p.vy += (Math.random()-0.5) * 0.10;
+
+    // Move
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+
+    // Hard clamp to tube walls
+    const pr2 = tubeProfile(p.x);
+    if (p.y < pr2.top+1)    { p.y = pr2.top+1;    p.vy *= -0.3; }
+    if (p.y > pr2.bottom-1) { p.y = pr2.bottom-1; p.vy *= -0.3; }
+
+    p.life++;
+    p.trail.push({x:p.x, y:p.y});
+    if (p.trail.length > 20) p.trail.shift();
+
+    // Respawn when exiting right or too old
+    if (p.x > W + 20 || p.life > p.maxLife) {
+      particles[i] = mkParticle(false);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDERING
+// ═══════════════════════════════════════════════════
+
+// Speed → colour (same as wind simulator: green→amber→red)
+function speedColor(t) {
+  t = Math.max(0, Math.min(1, t));
+  let r,g,b;
+  if (t<0.5) { const u=t*2; r=Math.round(lerp(26,234,u)); g=Math.round(lerp(200,179,u)); b=Math.round(lerp(95,20,u)); }
+  else        { const u=(t-0.5)*2; r=Math.round(lerp(234,240,u)); g=Math.round(lerp(179,48,u)); b=Math.round(lerp(20,72,u)); }
+  return `rgb(${r},${g},${b})`;
+}
+
+// Pressure → colour (blue=low, amber=high)
+function pressureColor(pNorm) {
+  // pNorm 0..1 : 0=low (throat), 1=high (wide)
+  const t = pNorm;
+  let r,g,b,a;
+  if (t<0.4) { const u=t/0.4; r=Math.round(lerp(20,30,u)); g=Math.round(lerp(60,40,u)); b=Math.round(lerp(200,80,u)); a=Math.round(lerp(180,90,u)); }
+  else if(t<0.6){ const u=(t-0.4)/0.2; r=Math.round(lerp(30,10,u)); g=Math.round(lerp(40,10,u)); b=Math.round(lerp(80,10,u)); a=Math.round(lerp(90,20,u)); }
+  else { const u=(t-0.6)/0.4; r=Math.round(lerp(10,220,u)); g=Math.round(lerp(10,80,u)); b=Math.round(lerp(10,10,u)); a=Math.round(lerp(20,160,u)); }
+  return {r,g,b,a};
+}
+
+function drawBackground() {
+  ctxBg.clearRect(0,0,W,H);
+  // Subtle grid
+  ctxBg.strokeStyle='rgba(30,37,53,0.5)';
+  ctxBg.lineWidth=0.5;
+  const gs=16;
+  for(let x=0;x<W;x+=gs){ctxBg.beginPath();ctxBg.moveTo(x,0);ctxBg.lineTo(x,H);ctxBg.stroke();}
+  for(let y=0;y<H;y+=gs){ctxBg.beginPath();ctxBg.moveTo(0,y);ctxBg.lineTo(W,y);ctxBg.stroke();}
+}
+
+function drawTube() {
+  ctxTube.clearRect(0,0,W,H);
+
+  // ── Build tube path ──
+  const steps = W;
+  ctxTube.save();
+
+  // Outer glow/shadow of tube walls
+  // Top wall
+  ctxTube.beginPath();
+  for(let x=0;x<=W;x+=2){
+    const p=tubeProfile(x);
+    if(x===0) ctxTube.moveTo(x,p.top); else ctxTube.lineTo(x,p.top);
+  }
+  // Bottom wall (reversed)
+  for(let x=W;x>=0;x-=2){
+    const p=tubeProfile(x);
+    ctxTube.lineTo(x,p.bottom);
+  }
+  ctxTube.closePath();
+
+  // Interior fill — very dark
+  ctxTube.fillStyle='rgba(6,8,14,0.92)';
+  ctxTube.fill();
+
+  // Wall stroke — top
+  ctxTube.beginPath();
+  for(let x=0;x<=W;x+=2){
+    const p=tubeProfile(x);
+    if(x===0) ctxTube.moveTo(x,p.top); else ctxTube.lineTo(x,p.top);
+  }
+  ctxTube.strokeStyle='rgba(155,172,208,0.85)';
+  ctxTube.lineWidth=3;
+  ctxTube.shadowColor='rgba(155,172,208,0.3)';
+  ctxTube.shadowBlur=6;
+  ctxTube.stroke();
+
+  // Wall stroke — bottom
+  ctxTube.beginPath();
+  for(let x=0;x<=W;x+=2){
+    const p=tubeProfile(x);
+    if(x===0) ctxTube.moveTo(x,p.bottom); else ctxTube.lineTo(x,p.bottom);
+  }
+  ctxTube.stroke();
+  ctxTube.restore();
+
+  // ── Dimension arrows at inlet/throat/outlet ──
+  if (!showLabels) return;
+  const sections = [
+    { x: W*0.12, label:'A', color:'#3de8b0' },
+    { x: throatCx, label:'B', color:'#f04860' },
+    { x: W*0.88, label:'C', color:'#3de8b0' },
+  ];
+  sections.forEach(s => {
+    const pr = tubeProfile(s.x);
+    const h  = pr.bottom - pr.top;
+    const cx = s.x;
+    // vertical arrow
+    ctxTube.save();
+    ctxTube.strokeStyle = s.color;
+    ctxTube.fillStyle   = s.color;
+    ctxTube.lineWidth   = 1.5;
+    ctxTube.globalAlpha = 0.7;
+    // line
+    ctxTube.beginPath();
+    ctxTube.moveTo(cx, pr.top+4);
+    ctxTube.lineTo(cx, pr.bottom-4);
+    ctxTube.stroke();
+    // top arrow
+    ctxTube.beginPath();
+    ctxTube.moveTo(cx-5, pr.top+10); ctxTube.lineTo(cx, pr.top+4); ctxTube.lineTo(cx+5, pr.top+10);
+    ctxTube.fill();
+    // bottom arrow
+    ctxTube.beginPath();
+    ctxTube.moveTo(cx-5, pr.bottom-10); ctxTube.lineTo(cx, pr.bottom-4); ctxTube.lineTo(cx+5, pr.bottom-10);
+    ctxTube.fill();
+    // label
+    ctxTube.globalAlpha=0.9;
+    ctxTube.font='bold 10px Space Mono, monospace';
+    ctxTube.textAlign='center';
+    ctxTube.fillText(s.label, cx+14, (pr.top+pr.bottom)/2+4);
+    ctxTube.restore();
+  });
+
+  // ── Width dimension labels ──
+  if (showLabels) {
+    const labelY = H * 0.92;
+    const sA = tubeProfile(W*0.12);
+    const sB = tubeProfile(throatCx);
+    const sC = tubeProfile(W*0.88);
+    const hA = (sA.bottom-sA.top).toFixed(0);
+    const hB = (sB.bottom-sB.top).toFixed(0);
+    const hC = (sC.bottom-sC.top).toFixed(0);
+    [[W*0.12,'#3de8b0',`h = ${hA}px`],[throatCx,'#f04860',`h = ${hB}px`],[W*0.88,'#3de8b0',`h = ${hC}px`]].forEach(([x,col,txt])=>{
+      ctxTube.save();
+      ctxTube.font='bold 8px Space Mono, monospace';
+      ctxTube.fillStyle=col; ctxTube.globalAlpha=0.55;
+      ctxTube.textAlign='center';
+      ctxTube.fillText(txt, x, labelY);
+      ctxTube.restore();
+    });
+  }
+}
+
+function drawPressureField() {
+  ctxPres.clearRect(0,0,W,H);
+  if (!showPressure) return;
+
+  // Compute pressure range for normalisation
+  const pWide   = localPressure(W*0.1);
+  const pThroat = localPressure(throatCx);
+  const pMin    = Math.min(pWide, pThroat);
+  const pMax    = Math.max(pWide, pThroat);
+  const pRange  = Math.max(1, pMax-pMin);
+
+  const img = ctxPres.createImageData(W, H);
+  const d   = img.data;
+
+  for (let x=0; x<W; x+=2) {
+    const pr   = tubeProfile(x);
+    const pVal = localPressure(x);
+    const norm = (pVal-pMin)/pRange;
+    const col  = pressureColor(norm);
+    for (let y=Math.ceil(pr.top); y<Math.floor(pr.bottom); y++) {
+      // fade near walls
+      const distTop = y - pr.top;
+      const distBot = pr.bottom - y;
+      const wallFade = Math.min(distTop, distBot, 12) / 12;
+      const alpha = col.a * wallFade;
+      for (let dx=0; dx<2 && x+dx<W; dx++) {
+        const pi = (y*W + x+dx)*4;
+        d[pi]   = col.r;
+        d[pi+1] = col.g;
+        d[pi+2] = col.b;
+        d[pi+3] = alpha;
+      }
+    }
+  }
+  ctxPres.putImageData(img, 0, 0);
+}
+
+function drawParticles() {
+  ctxParts.clearRect(0,0,W,H);
+
+  // Velocity vectors first
+  if (showVectors) {
+    const step = 28;
+    for (let x=step; x<W-step; x+=step) {
+      const pr   = tubeProfile(x);
+      const mid  = (pr.top+pr.bottom)*0.5;
+      const vLoc = localVelocity(x);
+      const vMax = localVelocity(throatCx);
+      const t    = vLoc/vMax;
+      const len  = Math.min(vLoc*3, 40);
+      const col  = speedColor(t);
+      ctxParts.save();
+      ctxParts.strokeStyle = col;
+      ctxParts.globalAlpha = 0.55;
+      ctxParts.lineWidth   = 1.2;
+      ctxParts.beginPath();
+      ctxParts.moveTo(x, mid);
+      ctxParts.lineTo(x+len, mid);
+      ctxParts.stroke();
+      // Arrowhead
+      ctxParts.fillStyle = col;
+      ctxParts.beginPath();
+      ctxParts.moveTo(x+len-7, mid-4);
+      ctxParts.lineTo(x+len, mid);
+      ctxParts.lineTo(x+len-7, mid+4);
+      ctxParts.fill();
+      ctxParts.restore();
+    }
+  }
+
+  // Particles
+  const vMax = localVelocity(throatCx);
+  for (const p of particles) {
+    if (p.trail.length < 2) continue;
+    const vLocal = localVelocity(p.x);
+    const t = vLocal / vMax;
+    const col = speedColor(t);
+
+    ctxParts.save();
+    for (let i=1; i<p.trail.length; i++) {
+      const alpha = (i/p.trail.length) * 0.78;
+      ctxParts.strokeStyle = col;
+      ctxParts.globalAlpha = alpha;
+      ctxParts.lineWidth   = p.size * 0.75;
+      ctxParts.beginPath();
+      ctxParts.moveTo(p.trail[i-1].x, p.trail[i-1].y);
+      ctxParts.lineTo(p.trail[i].x,   p.trail[i].y);
+      ctxParts.stroke();
+    }
+    // Head dot
+    ctxParts.globalAlpha = 0.9;
+    ctxParts.fillStyle   = col;
+    ctxParts.shadowColor = col;
+    ctxParts.shadowBlur  = 3;
+    ctxParts.beginPath();
+    ctxParts.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctxParts.fill();
+    ctxParts.restore();
+  }
+}
+
+function drawUi() {
+  ctxUi.clearRect(0,0,W,H);
+  if (!showLabels) return;
+
+  // ── Speed labels at key x-positions ──
+  const spots = [
+    { x:W*0.12, label:'v₁', col:'#3de8b0' },
+    { x:throatCx, label:'v₂', col:'#f04860' },
+    { x:W*0.88, label:'v₃', col:'#3de8b0' },
+  ];
+
+  spots.forEach(s => {
+    const pr   = tubeProfile(s.x);
+    const vLoc = localVelocity(s.x).toFixed(1);
+    const pLoc = ((localPressure(s.x)-P_ATM)/1000).toFixed(2);
+    const y    = pr.top - 22;
+
+    ctxUi.save();
+    ctxUi.font = 'bold 9px Space Mono, monospace';
+    ctxUi.fillStyle = s.col;
+    ctxUi.globalAlpha = 0.85;
+    ctxUi.textAlign = 'center';
+    ctxUi.fillText(`${s.label} = ${vLoc} m/s`, s.x, y);
+    ctxUi.restore();
+
+    // Pressure annotation below tube
+    const pColor = s.x===throatCx ? '#4899ff' : '#f0a832';
+    const pLabel = `ΔP = ${pLoc} kPa`;
+    ctxUi.save();
+    ctxUi.font = 'bold 8px Space Mono, monospace';
+    ctxUi.fillStyle = pColor;
+    ctxUi.globalAlpha = 0.65;
+    ctxUi.textAlign = 'center';
+    ctxUi.fillText(pLabel, s.x, pr.bottom + 18);
+    ctxUi.restore();
+  });
+
+  // Ratio annotation at throat
+  const pA = tubeProfile(W*0.12);
+  const pB = tubeProfile(throatCx);
+  const ratioText = `A₁/A₂ = ${((pA.bottom-pA.top)/(pB.bottom-pB.top)).toFixed(2)}×`;
+  ctxUi.save();
+  ctxUi.font='bold 8px Space Mono, monospace';
+  ctxUi.fillStyle='rgba(240,168,50,0.6)';
+  ctxUi.textAlign='center';
+  ctxUi.fillText(ratioText, throatCx, H*0.92+12);
+  ctxUi.restore();
+}
+
+// ═══════════════════════════════════════════════════
+//  GAUGES UPDATE
+// ═══════════════════════════════════════════════════
+function updateGauges() {
+  const vA = localVelocity(W*0.12);
+  const vB = localVelocity(throatCx);
+  const vC = localVelocity(W*0.88);
+  const pA = localPressure(W*0.12);
+  const pB = localPressure(throatCx);
+  const pC = localPressure(W*0.88);
+
+  const vMax = vB;
+  const pMax = Math.max(pA, pB, pC);
+  const pMin = Math.min(pA, pB, pC);
+  const pRange = pMax - pMin || 1;
+
+  function pNorm(p){ return (p-pMin)/pRange; }
+
+  // Bar heights
+  document.getElementById('bar-a-v').style.height = (vA/vMax*90)+'%';
+  document.getElementById('bar-b-v').style.height = (vB/vMax*90)+'%';
+  document.getElementById('bar-c-v').style.height = (vC/vMax*90)+'%';
+  document.getElementById('bar-a-p').style.height = (pNorm(pA)*90)+'%';
+  document.getElementById('bar-b-p').style.height = (pNorm(pB)*90+3)+'%';
+  document.getElementById('bar-c-p').style.height = (pNorm(pC)*90)+'%';
+
+  // Numeric values
+  document.getElementById('val-a-v').textContent = vA.toFixed(1)+' m/s';
+  document.getElementById('val-b-v').textContent = vB.toFixed(1)+' m/s';
+  document.getElementById('val-c-v').textContent = vC.toFixed(1)+' m/s';
+  const dp = p => ((p-P_ATM)/1000).toFixed(2)+' kPa';
+  document.getElementById('val-a-p').textContent = dp(pA);
+  document.getElementById('val-b-p').textContent = dp(pB);
+  document.getElementById('val-c-p').textContent = dp(pC);
+
+}
+
+// ═══════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════
+let frameCount = 0;
+function loop() {
+  stepParticles();
+  drawTube();
+  if (frameCount % 2 === 0) drawPressureField();
+  drawParticles();
+  drawUi();
+  if (frameCount % 8 === 0) updateGauges();
+  frameCount++;
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════
+//  CONTROLS
+// ═══════════════════════════════════════════════════
+function setFlowSpeed(v) {
+  flowSpeed = v;
+  document.getElementById('lbl-speed').textContent = v+' m/s';
+}
+
+function setThroat(v) {
+  throatPct = v/100;
+  document.getElementById('lbl-throat').textContent = v+'%';
+  document.getElementById('ratio-val').textContent  = v+'%';
+}
+
+function toggleLayer(name) {
+  const btn = document.getElementById('btn-'+name);
+  btn.classList.toggle('on');
+  if(name==='pressure') { showPressure=btn.classList.contains('on'); if(!showPressure) ctxPres.clearRect(0,0,W,H); }
+  if(name==='vectors')    showVectors  = btn.classList.contains('on');
+  if(name==='labels')   { showLabels   = btn.classList.contains('on'); }
+}
+
+// ═══════════════════════════════════════════════════
+//  RESIZE
+// ═══════════════════════════════════════════════════
+function resize() {
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  [cBg,cTube,cPres,cParts,cUi].forEach(c => { c.width=W; c.height=H; });
+
+  // Tube centred vertically
+  const tubeH = H * 0.52;
+  tubeY1   = (H - tubeH) / 2;
+  tubeY2   = tubeY1 + tubeH;
+  throatCx = W * 0.5;
+
+  drawBackground();
+  drawTube();
+  initParticles();
+}
+
+window.addEventListener('resize', () => { resize(); });
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+resize();
+
+// Show callouts after short delay
+setTimeout(() => {
+  document.getElementById('co-left').classList.add('show');
+  document.getElementById('co-right').classList.add('show');
+}, 800);
+setTimeout(() => {
+  document.getElementById('co-throat').classList.add('show');
+}, 1400);
+
+loop();
+</script>
+
+
+
+</body>
+</html>
