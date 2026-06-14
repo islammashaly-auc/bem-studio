@@ -147,6 +147,67 @@
   }
   .run-btn:hover { background: rgba(61,232,176,0.25); }
   .run-btn.running { border-color: var(--red); color: var(--red); background: rgba(240,72,96,0.1); }
+
+  /* ── Screenshot mode ── */
+  .shot-btn {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 5px 12px;
+    color: var(--dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    cursor: pointer; transition: all 0.18s;
+  }
+  .shot-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+  .shot-btn.active { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+  /* Capture button only shows while screenshot mode is on */
+  #capture-btn { display: none; margin-left: 6px; }
+  body.shot-mode #capture-btn { display: flex; }
+
+  /* When screenshot mode is on, hide all chrome except the canvas + export overlays */
+  body.shot-mode .left,
+  body.shot-mode .zoom-hud,
+  body.shot-mode #dim-overlay,
+  body.shot-mode #zones-overlay,
+  body.shot-mode #pscale-overlay,
+  body.shot-mode .sidebar-toggle { display: none !important; }
+  body.shot-mode .canvas-area { justify-content: center; align-items: center; }
+
+  /* Export caption overlay drawn over the canvas in screenshot mode */
+  .export-overlay {
+    position: absolute; left: 0; top: 0;
+    pointer-events: none; display: none;
+    line-height: normal;   /* canvas-wrap sets line-height:0 — restore it here */
+    font-family: 'Space Mono', monospace; color: #1a2030;
+  }
+  body.shot-mode .export-overlay { display: block; }
+  .export-overlay .exp-title {
+    position: absolute; left: 16px; top: 14px; line-height: 1.2;
+    font-size: 15px; font-weight: 700; letter-spacing: 0.04em; color: #141820;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.6);
+  }
+  .export-overlay .exp-sub {
+    position: absolute; left: 16px; top: 38px; line-height: 1.2;
+    font-size: 10px; color: #3a4560; letter-spacing: 0.06em; white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(255,255,255,0.6);
+  }
+  .export-overlay .exp-legend {
+    position: absolute; right: 16px; bottom: 16px; line-height: 1.3;
+    background: rgba(255,255,255,0.82); border: 1px solid rgba(40,55,90,0.25);
+    border-radius: 5px; padding: 8px 11px; width: 168px;
+  }
+  .export-overlay .exp-leg-title { font-size: 8px; letter-spacing: 0.14em; color: #5a6886; margin-bottom: 4px; text-transform: uppercase; }
+  .export-overlay .exp-leg-bar { height: 7px; border-radius: 3px; margin-bottom: 3px; }
+  .export-overlay .exp-leg-ticks { display: flex; justify-content: space-between; font-size: 7px; color: #4a5876; margin-bottom: 7px; }
+  .export-overlay .exp-scalebar {
+    position: absolute; left: 16px; bottom: 16px; line-height: 1.3;
+    background: rgba(255,255,255,0.82); border: 1px solid rgba(40,55,90,0.25);
+    border-radius: 5px; padding: 7px 10px;
+  }
+  .export-overlay .exp-scale-line { height: 3px; background: #1a2030; margin-bottom: 4px; border-radius: 1px; }
+  .export-overlay .exp-scale-txt { font-size: 8px; color: #4a5876; letter-spacing: 0.08em; text-align: center; }
   .run-btn .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: blink 1.4s infinite; }
   .run-btn.running .dot { background: var(--red); }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
@@ -1575,11 +1636,12 @@
     <input type="range" min="0" max="359" value="0" oninput="setDeg(+this.value);this.previousElementSibling.querySelector('.wp-val').textContent=this.value+'°'" id="wp-deg-slider">
     <div class="wp-row" style="margin-top:8px;"><span>Speed</span><span class="wp-val" id="wp-spd-lbl">5 m/s</span></div>
     <input type="range" min="0" max="100" value="5" step="0.5" oninput="onSpd(+this.value);document.getElementById('wp-spd-lbl').textContent=this.value+' m/s'" id="wp-spd-slider">
-    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
-      <button onclick="setDeg(0);closeWindPopup()"  style="flex:1;font-family:'Space Mono',monospace;font-size:8px;padding:4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--dim);cursor:pointer;">N</button>
-      <button onclick="setDeg(90);closeWindPopup()" style="flex:1;font-family:'Space Mono',monospace;font-size:8px;padding:4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--dim);cursor:pointer;">E</button>
-      <button onclick="setDeg(180);closeWindPopup()" style="flex:1;font-family:'Space Mono',monospace;font-size:8px;padding:4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--dim);cursor:pointer;">S</button>
-      <button onclick="setDeg(270);closeWindPopup()" style="flex:1;font-family:'Space Mono',monospace;font-size:8px;padding:4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--dim);cursor:pointer;">W</button>
+    <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--dim);letter-spacing:0.1em;margin-top:10px;text-transform:uppercase;">Wind direction (from)</div>
+    <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
+      <button onclick="setDeg(0);closeWindPopup()"  style="flex:1;font-family:'Space Mono',monospace;font-size:8px;padding:4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--dim);cursor:pointer;">S</button>
+      <button onclick="setDeg(90);closeWindPopup()" style="flex:1;font-family:'Space Mono',monospace;font-size:8px;padding:4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--dim);cursor:pointer;">W</button>
+      <button onclick="setDeg(180);closeWindPopup()" style="flex:1;font-family:'Space Mono',monospace;font-size:8px;padding:4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--dim);cursor:pointer;">N</button>
+      <button onclick="setDeg(270);closeWindPopup()" style="flex:1;font-family:'Space Mono',monospace;font-size:8px;padding:4px;background:var(--panel);border:1px solid var(--border2);border-radius:3px;color:var(--dim);cursor:pointer;">E</button>
     </div>
   </div>
 
@@ -1669,7 +1731,15 @@
     <span id="cloud-status-text">Cloud</span>
   </div>
   <div class="hdr-sep"></div>
-  <button class="run-btn" id="run-btn" onclick="toggleSim()">
+  <div class="hdr-sep"></div>
+  <button class="shot-btn" id="shot-toggle" onclick="toggleScreenshotMode()" title="Screenshot mode — hide UI for a clean export" style="margin-left:auto;">
+    <span style="font-size:12px;line-height:1;">⛶</span><span id="shot-lbl">SCREENSHOT</span>
+  </button>
+  <button class="shot-btn" id="capture-btn" onclick="captureCanvas()" title="Copy the simulation canvas to clipboard">
+    <span style="font-size:12px;line-height:1;">⧉</span><span>COPY IMAGE</span>
+  </button>
+  <div class="hdr-sep" id="shot-sep" style="display:none;"></div>
+  <button class="run-btn" id="run-btn" onclick="toggleSim()" style="margin-left:6px;">
     <div class="dot"></div><span id="run-lbl">RUN SIM</span>
   </button>
   <button class="run-btn" id="pause-btn" onclick="togglePause()" style="display:none; margin-left:6px; border-color:var(--amber); color:var(--amber); background:rgba(240,168,50,0.1);">
@@ -1935,6 +2005,23 @@
       <canvas id="cvs-particles"></canvas>
       <canvas id="cvs-zone"></canvas>
       <canvas id="cvs-interact"></canvas>
+      <!-- Export overlay: title/scale/legend, shown only in screenshot mode -->
+      <div class="export-overlay" id="export-overlay">
+        <div class="exp-title" id="exp-title">Untitled Project</div>
+        <div class="exp-sub" id="exp-sub"></div>
+        <div class="exp-scalebar">
+          <div class="exp-scale-line" id="exp-scale-line" style="width:60px;"></div>
+          <div class="exp-scale-txt" id="exp-scale-txt">5 m</div>
+        </div>
+        <div class="exp-legend">
+          <div class="exp-leg-title">Pressure</div>
+          <div class="exp-leg-bar" id="exp-leg-bar" style="background:linear-gradient(to right,#0a4f8c,#0a9e8c,#0a0f14,#c05820,#c01828);"></div>
+          <div class="exp-leg-ticks"><span>Suction</span><span>0</span><span>Compression</span></div>
+          <div class="exp-leg-title">Particle Speed</div>
+          <div class="exp-leg-bar" style="background:linear-gradient(to right,rgb(26,200,95),rgb(234,179,20),rgb(240,48,72));"></div>
+          <div class="exp-leg-ticks"><span>Slow</span><span>Med</span><span>Fast</span></div>
+        </div>
+      </div>
     </div>
     <div class="pscale-overlay" id="pscale-overlay">
       <div class="pscale-title">Pressure Scale</div>
@@ -2318,6 +2405,17 @@ let selectedScale = null; // set by welcome screen
 let projectName = 'Untitled Project'; // current project name
 let CELL = 8;             // px per grid cell — 4=ultra, 8=high (default), 16=low
 let M_PER_PX = 0.025;    // metres per pixel — fixed at grid selection, never changes with window resize
+// Convert internal sim speed to real-world m/s.
+//   The solver's velocity unit is NOT a physical distance/time — it is the
+//   wind-speed slider (m/s) scaled by AP_ambientMult: the open free stream
+//   equilibrates at exactly windSpd × AP_ambientMult. So recovering m/s is
+//   just dividing that multiplier back out. An UNOBSTRUCTED zone then reads
+//   the slider value, and obstacles reduce it from there — matching intent
+//   ("5 m/s wind → sheltered courtyard reads ~1.2 m/s").
+function simSpeedToMs(simSpeed) {
+  const cal = AP_ambientMult > 0.01 ? AP_ambientMult : 1;
+  return simSpeed / cal;
+}
 let REF_CANVAS_W = 0;   // canvas width at the moment M_PER_PX was set (for save/restore)
 let GRID_W_M = 25;       // real-world width currently visible (changes with zoom)
 let GRID_H_M = 25;       // real-world height currently visible (changes with zoom)
@@ -2383,6 +2481,7 @@ const OBS_SCR_25 = 5, OBS_SCR_50 = 6, OBS_SCR_75 = 7; // permeable screen obs va
 
 // Zone measuring — multi-zone support
 let zones = [];           // [{points, name, avg, tagClass, tagText}]
+let globalAvgMs = null;   // smoothed global mean speed (m/s)
 let zonePending = [];     // points being drawn for current zone
 let zoneMousePos = null;
 let zoneMode = 'rect';    // 'polygon' | 'rect'
@@ -2395,6 +2494,7 @@ let ctxPastePos = null;     // canvas position for paste-in-place on empty area
 
 let GW, GH, canvasW, canvasH;
 let pressure, velX, velY, obstacle, newPressure;
+let fsTmpU, fsTmpV, fsDiv, fsCurl;   // fluid-solver scratch buffers
 let particles = [];
 
 // ════════════════════════════════════════════════
@@ -2456,6 +2556,11 @@ function initArrays() {
   velX        = new Float32Array(N);
   velY        = new Float32Array(N);
   obstacle    = new Uint8Array(N);  // 0=free, 1=solid wall
+  // Solver scratch buffers (semi-Lagrangian advection / projection)
+  fsTmpU = new Float32Array(N);
+  fsTmpV = new Float32Array(N);
+  fsDiv  = new Float32Array(N);
+  fsCurl = new Float32Array(N);
 }
 
 function ci(x, y) { return y * GW + x; }
@@ -2619,158 +2724,228 @@ let AP_lifeRand      = 600;    // particle random life addition (frames)
 let AP_headStart     = 300;    // max head-start frames on spawn
 let AP_headAdvMult   = 0.3;    // head-start position pre-advance multiplier
 
+// ── Fluid solver constants ──
+// Permeability lookup by obstacle code:
+// 0=free, 1=solid, 2/3/4=tree hi/med/lo, 5/6/7=screen 25/50/75
+const PERM_LUT = new Float32Array([1, 0, PERM_FACTOR.high, PERM_FACTOR.med, PERM_FACTOR.low,
+                                   PERM_FACTOR.scr25, PERM_FACTOR.scr50, PERM_FACTOR.scr75]);
+const FS_DRIVE = 0.012;   // free-stream relaxation rate toward ambient wind (per frame)
+                         // (low rate → velocity-deficit wakes persist realistically downstream)
+// Per-frame momentum retention so equilibrium speed inside porous media ≈ perm × ambient
+// (Darcy-style drag, solved for the drive/drag balance point)
+const DRAG_LUT = new Float32Array(8);
+// Stagnation-source resistance per obstacle code; screens amplified to
+// compensate for being only a few cells thick (matches legacy tuning)
+const RES_LUT = new Float32Array(8);
+// Pressure-opaque codes: solid walls AND screens. A thin screen is a membrane —
+// pressure must NOT communicate across it (else the windward high pressure
+// spurts flow through the lee stencil); through-flow is carried solely by the
+// screen cell's porosity-retained velocity.
+const POPAQ_LUT = new Uint8Array([0,1,0,0,0,1,1,1]);
+for (let k = 0; k < 8; k++) {
+  const r = PERM_LUT[k];
+  // Trees (thick media): advection-pass drag tuned so equilibrium speed
+  // ≈ perm × ambient. Screens (thin membranes): no drag here — their
+  // porosity retention is applied once, post-projection, in computeVelocity
+  // (applying it twice would choke even high-porosity screens).
+  DRAG_LUT[k] = (k === 1) ? 0 : (k >= 5) ? 1 : r / (FS_DRIVE + r * (1 - FS_DRIVE));
+  // Screens get no artificial stagnation bias — their pressure jump forms
+  // naturally from the drag-induced divergence; a synthetic dipole would
+  // accelerate flow back through the membrane.
+  RES_LUT[k]  = (k === 1) ? 1 : (k >= 5) ? 0 : 1 - r;
+}
+
+// ════════════════════════════════════════════════
+//  FLUID STEP 1 — MOMENTUM + PRESSURE (Stam "stable fluids")
+//  1. Semi-Lagrangian advection: velocity carries itself downstream,
+//     so wakes, recirculation and flow memory emerge naturally.
+//  2. Ambient drive: free stream relaxes toward the wind vector.
+//  3. Porous drag: foliage saps momentum (Darcy-style).
+//  4. Vorticity confinement: restores eddies lost to grid diffusion,
+//     scaled by the user turbulence slider.
+//  5. Divergence + pressure Poisson (warm-started Gauss-Seidel/SOR):
+//     enforces mass conservation → real stagnation pressure windward,
+//     suction in wakes, and Venturi acceleration through gaps.
+// ════════════════════════════════════════════════
 function solvePressure() {
   const rad = windDeg * Math.PI / 180;
   const wdx =  Math.sin(rad);   // wind travel direction
   const wdy = -Math.cos(rad);
+  const ambVx = wdx * windSpd * AP_ambientMult;
+  const ambVy = wdy * windSpd * AP_ambientMult;
+  const invCell = 1 / CELL;
+  const N = GW * GH;
 
-  // ── Gauss-Seidel relaxation — interior only ──
-  // Source term: wind hits obstacles → builds upstream pressure, drops downstream.
-  // We inject a small source proportional to how much the ambient wind "presses"
-  // against each obstacle face, accumulating into neighbouring free cells.
-  for (let iter=0; iter<ITERS; iter++) {
-    // Forward sweep
-    for (let y=1; y<GH-1; y++) {
-      for (let x=1; x<GW-1; x++) {
-        const id = ci(x,y);
-        if (obstacle[id]===1) { pressure[id]=0; continue; }
+  // ── 1+2+3) Advect velocity, apply ambient drive & porous drag (fused pass) ──
+  for (let y = 1; y < GH - 1; y++) {
+    const row = y * GW;
+    for (let x = 1; x < GW - 1; x++) {
+      const id = row + x;
+      const obs = obstacle[id];
+      if (obs === 1) { fsTmpU[id] = 0; fsTmpV[id] = 0; continue; }
 
-        const selfPerm = obstacle[id]===0 ? 1.0 :
-                         obstacle[id]===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                         obstacle[id]===OBS_TREE_MED  ? PERM_FACTOR.med  :
-                         obstacle[id]===OBS_TREE_LOW  ? PERM_FACTOR.low  :
-                         obstacle[id]===OBS_SCR_25    ? PERM_FACTOR.scr25 :
-                         obstacle[id]===OBS_SCR_50    ? PERM_FACTOR.scr50 :
-                         obstacle[id]===OBS_SCR_75    ? PERM_FACTOR.scr75 : PERM_FACTOR.low;
-        const selfRes = 1.0 - selfPerm; // resistance: high-density tree = high resistance
+      // Backtrace departure point (velocity is px/frame; grid coords need /CELL)
+      let bx = x - velX[id] * invCell;
+      let by = y - velY[id] * invCell;
+      if (bx < 0.5) bx = 0.5; else if (bx > GW - 1.5) bx = GW - 1.5;
+      if (by < 0.5) by = 0.5; else if (by > GH - 1.5) by = GH - 1.5;
+      const x0 = bx | 0, y0 = by | 0;
+      const fx = bx - x0, fy = by - y0;
+      const i00 = y0 * GW + x0, i10 = i00 + 1, i01 = i00 + GW, i11 = i01 + 1;
 
-        // Neighbour pressure transfer — tree neighbours partially block diffusion
-        function nP(nx2,ny2) {
-          const nid=ci(nx2,ny2), nobs=obstacle[nid];
-          if (nobs===1) return pressure[id]; // solid wall → Neumann reflect
-          // Tree neighbour: pressure passes through proportionally
-          const nPerm = nobs===0 ? 1.0 :
-                        nobs===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                        nobs===OBS_TREE_MED  ? PERM_FACTOR.med  :
-                        nobs===OBS_TREE_LOW  ? PERM_FACTOR.low  :
-                        nobs===OBS_SCR_25    ? PERM_FACTOR.scr25 :
-                        nobs===OBS_SCR_50    ? PERM_FACTOR.scr50 :
-                        nobs===OBS_SCR_75    ? PERM_FACTOR.scr75 : PERM_FACTOR.low;
-          return pressure[id] * (1-nPerm) + pressure[nid] * nPerm;
-        }
-        let avg = (nP(x,y-1)+nP(x,y+1)+nP(x+1,y)+nP(x-1,y)) * 0.25;
+      // Bilinear sample, masking solid cells to zero (walls absorb momentum)
+      const u00 = obstacle[i00] === 1 ? 0 : velX[i00], u10 = obstacle[i10] === 1 ? 0 : velX[i10];
+      const u01 = obstacle[i01] === 1 ? 0 : velX[i01], u11 = obstacle[i11] === 1 ? 0 : velX[i11];
+      const v00 = obstacle[i00] === 1 ? 0 : velY[i00], v10 = obstacle[i10] === 1 ? 0 : velY[i10];
+      const v01 = obstacle[i01] === 1 ? 0 : velY[i01], v11 = obstacle[i11] === 1 ? 0 : velY[i11];
+      let u = (u00 * (1 - fx) + u10 * fx) * (1 - fy) + (u01 * (1 - fx) + u11 * fx) * fy;
+      let v = (v00 * (1 - fx) + v10 * fx) * (1 - fy) + (v01 * (1 - fx) + v11 * fx) * fy;
 
-        // Source term: solid walls AND high-resistance trees generate pressure perturbation
-        let src = 0;
-        const neighbours = [[x-1,y,-wdx],[x+1,y,wdx],[x,y-1,-wdy],[x,y+1,wdy]];
-        for (const [nx2,ny2,proj] of neighbours) {
-          if (nx2<0||nx2>=GW||ny2<0||ny2>=GH) continue;
-          const nobs = obstacle[ci(nx2,ny2)];
-          let resistance = 0;
-          if (nobs===1) resistance = 1.0; // solid wall
-          else if (nobs===OBS_TREE_HIGH) resistance = 1.0 - PERM_FACTOR.high;
-          else if (nobs===OBS_TREE_MED)  resistance = 1.0 - PERM_FACTOR.med;
-          else if (nobs===OBS_TREE_LOW)  resistance = 1.0 - PERM_FACTOR.low;
-          // Screens: amplify source resistance to compensate for being only 1 cell thick
-          else if (nobs===OBS_SCR_25)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr25) * 5.0);
-          else if (nobs===OBS_SCR_50)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr50) * 3.5);
-          else if (nobs===OBS_SCR_75)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr75) * 2.0);
-          if (resistance > 0.05) {
-            src += proj * windSpd * resistance * (proj > 0 ? AP_srcWindward : AP_srcLeeward);
-          }
-        }
-        // Also: if THIS cell is a tree, it resists pressure equalisation
-        pressure[id] = pressure[id] + (avg + src - pressure[id]) * selfPerm;
+      // Ambient drive toward the wind vector, then porous drag
+      const d = DRAG_LUT[obs];
+      fsTmpU[id] = (u + (ambVx - u) * FS_DRIVE) * d;
+      fsTmpV[id] = (v + (ambVy - v) * FS_DRIVE) * d;
+    }
+  }
+  // Swap advected buffers into the live field
+  let sw = velX; velX = fsTmpU; fsTmpU = sw;
+  sw = velY; velY = fsTmpV; fsTmpV = sw;
+
+  // Open-boundary velocity BC: edges mirror interior (air passes freely)
+  for (let x = 0; x < GW; x++) {
+    velX[x] = velX[x + GW];           velY[x] = velY[x + GW];
+    velX[(GH-1)*GW + x] = velX[(GH-2)*GW + x]; velY[(GH-1)*GW + x] = velY[(GH-2)*GW + x];
+  }
+  for (let y = 0; y < GH; y++) {
+    velX[y*GW] = velX[y*GW + 1];      velY[y*GW] = velY[y*GW + 1];
+    velX[y*GW + GW-1] = velX[y*GW + GW-2]; velY[y*GW + GW-1] = velY[y*GW + GW-2];
+  }
+
+  // ── 4) Vorticity confinement — re-inject eddies smeared by the coarse grid ──
+  if (turbulence > 0.01) {
+    for (let y = 1; y < GH - 1; y++) {
+      const row = y * GW;
+      for (let x = 1; x < GW - 1; x++) {
+        const id = row + x;
+        fsCurl[id] = 0.5 * ((velY[id + 1] - velY[id - 1]) - (velX[id + GW] - velX[id - GW]));
       }
     }
-    // Backward sweep
-    for (let y=GH-2; y>=1; y--) {
-      for (let x=GW-2; x>=1; x--) {
-        const id = ci(x,y);
-        if (obstacle[id]===1) { pressure[id]=0; continue; }
-        const selfPerm = obstacle[id]===0 ? 1.0 :
-                         obstacle[id]===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                         obstacle[id]===OBS_TREE_MED  ? PERM_FACTOR.med  :
-                         obstacle[id]===OBS_TREE_LOW  ? PERM_FACTOR.low  :
-                         obstacle[id]===OBS_SCR_25    ? PERM_FACTOR.scr25 :
-                         obstacle[id]===OBS_SCR_50    ? PERM_FACTOR.scr50 :
-                         obstacle[id]===OBS_SCR_75    ? PERM_FACTOR.scr75 : PERM_FACTOR.low;
-        function nP2(nx2,ny2) {
-          const nid=ci(nx2,ny2), nobs=obstacle[nid];
-          if (nobs===1) return pressure[id];
-          const nPerm = nobs===0 ? 1.0 :
-                        nobs===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                        nobs===OBS_TREE_MED  ? PERM_FACTOR.med  :
-                        nobs===OBS_TREE_LOW  ? PERM_FACTOR.low  :
-                        nobs===OBS_SCR_25    ? PERM_FACTOR.scr25 :
-                        nobs===OBS_SCR_50    ? PERM_FACTOR.scr50 :
-                        nobs===OBS_SCR_75    ? PERM_FACTOR.scr75 : PERM_FACTOR.low;
-          return pressure[id] * (1-nPerm) + pressure[nid] * nPerm;
-        }
-        let avg = (nP2(x,y-1)+nP2(x,y+1)+nP2(x+1,y)+nP2(x-1,y)) * 0.25;
+    const eps = 0.16 * turbulence;
+    for (let y = 2; y < GH - 2; y++) {
+      const row = y * GW;
+      for (let x = 2; x < GW - 2; x++) {
+        const id = row + x;
+        if (obstacle[id] === 1) continue;
+        const dwx = 0.5 * (Math.abs(fsCurl[id + 1]) - Math.abs(fsCurl[id - 1]));
+        const dwy = 0.5 * (Math.abs(fsCurl[id + GW]) - Math.abs(fsCurl[id - GW]));
+        const m = Math.sqrt(dwx * dwx + dwy * dwy) + 1e-5;
+        const w = fsCurl[id] * eps / m;
+        velX[id] += dwy * w;
+        velY[id] -= dwx * w;
+      }
+    }
+  }
+
+  // ── 5a) Divergence (RHS of the Poisson equation) + stagnation source ──
+  // Solid faces are impermeable: normal velocity at a wall face is zero.
+  // AP_srcWindward / AP_srcLeeward bias extra stagnation pressure onto
+  // obstacle faces (visual form-drag emphasis on top of the true solution).
+  const SRC_SCALE = 0.05;
+  for (let y = 1; y < GH - 1; y++) {
+    const row = y * GW;
+    for (let x = 1; x < GW - 1; x++) {
+      const id = row + x;
+      const obs0 = obstacle[id];
+      if (obs0 === 1 || obs0 >= 5) { fsDiv[id] = 0; pressure[id] = 0; continue; }
+      const oL = obstacle[id - 1], oR = obstacle[id + 1];
+      const oU = obstacle[id - GW], oD = obstacle[id + GW];
+      const uL = oL === 1 ? 0 : velX[id - 1], uR = oR === 1 ? 0 : velX[id + 1];
+      const vU = oU === 1 ? 0 : velY[id - GW], vD = oD === 1 ? 0 : velY[id + GW];
+      let rhs = -0.5 * ((uR - uL) + (vD - vU));
+      // Stagnation bias only where a neighbour actually resists flow
+      if ((oL | oR | oU | oD) !== 0) {
         let src = 0;
-        const neighbours2 = [[x-1,y,-wdx],[x+1,y,wdx],[x,y-1,-wdy],[x,y+1,wdy]];
-        for (const [nx2,ny2,proj] of neighbours2) {
-          if (nx2<0||nx2>=GW||ny2<0||ny2>=GH) continue;
-          const nobs2 = obstacle[ci(nx2,ny2)];
-          let resistance = 0;
-          if (nobs2===1) resistance = 1.0;
-          else if (nobs2===OBS_TREE_HIGH) resistance = 1.0 - PERM_FACTOR.high;
-          else if (nobs2===OBS_TREE_MED)  resistance = 1.0 - PERM_FACTOR.med;
-          else if (nobs2===OBS_TREE_LOW)  resistance = 1.0 - PERM_FACTOR.low;
-          else if (nobs2===OBS_SCR_25)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr25) * 5.0);
-          else if (nobs2===OBS_SCR_50)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr50) * 3.5);
-          else if (nobs2===OBS_SCR_75)    resistance = Math.min(1.0, (1.0 - PERM_FACTOR.scr75) * 2.0);
-          if (resistance > 0.05) src += proj * windSpd * resistance * (proj > 0 ? AP_srcWindward : AP_srcLeeward);
-        }
-        pressure[id] = pressure[id] + (avg + src - pressure[id]) * selfPerm;
+        let res = RES_LUT[oL]; if (res > 0.05) src += -wdx * windSpd * res * (-wdx > 0 ? AP_srcWindward : AP_srcLeeward);
+        res = RES_LUT[oR];     if (res > 0.05) src +=  wdx * windSpd * res * ( wdx > 0 ? AP_srcWindward : AP_srcLeeward);
+        res = RES_LUT[oU];     if (res > 0.05) src += -wdy * windSpd * res * (-wdy > 0 ? AP_srcWindward : AP_srcLeeward);
+        res = RES_LUT[oD];     if (res > 0.05) src +=  wdy * windSpd * res * ( wdy > 0 ? AP_srcWindward : AP_srcLeeward);
+        rhs += src * SRC_SCALE;
+      }
+      fsDiv[id] = rhs;
+    }
+  }
+
+  // ── 5b) Pressure Poisson — warm-started SOR Gauss-Seidel ──
+  // AP_pressDecay doubles as the warm-start retention factor: the previous
+  // frame's solution seeds this one, so few iterations converge well.
+  for (let i = 0; i < N; i++) pressure[i] *= AP_pressDecay;
+  const OMEGA = 1.5;
+  for (let iter = 0; iter < ITERS; iter++) {
+    const fwd = (iter & 1) === 0;
+    for (let yy = 1; yy < GH - 1; yy++) {
+      const y = fwd ? yy : GH - 1 - yy;
+      const row = y * GW;
+      for (let xx = 1; xx < GW - 1; xx++) {
+        const x = fwd ? xx : GW - 1 - xx;
+        const id = row + x;
+        const o0 = obstacle[id];
+        if (o0 === 1 || o0 >= 5) continue;
+        const p0 = pressure[id];
+        const pL = POPAQ_LUT[obstacle[id - 1]]  ? p0 : pressure[id - 1];
+        const pR = POPAQ_LUT[obstacle[id + 1]]  ? p0 : pressure[id + 1];
+        const pU = POPAQ_LUT[obstacle[id - GW]] ? p0 : pressure[id - GW];
+        const pD = POPAQ_LUT[obstacle[id + GW]] ? p0 : pressure[id + GW];
+        pressure[id] = p0 + ((pL + pR + pU + pD + fsDiv[id]) * 0.25 - p0) * OMEGA;
       }
     }
   }
 
   // ── Neumann BC on all 4 canvas edges: copy from interior neighbour ──
-  // This makes the boundary fully transparent — no pressure gradient at edges.
-  for (let x=0; x<GW; x++) {
+  for (let x = 0; x < GW; x++) {
     pressure[ci(x,0)]    = pressure[ci(x,1)];
     pressure[ci(x,GH-1)] = pressure[ci(x,GH-2)];
   }
-  for (let y=0; y<GH; y++) {
+  for (let y = 0; y < GH; y++) {
     pressure[ci(0,y)]    = pressure[ci(1,y)];
     pressure[ci(GW-1,y)] = pressure[ci(GW-2,y)];
-  }
-
-  // Decay: slow enough that wake zone spreads a few cells behind obstacles
-  for (let i=0; i<GW*GH; i++) {
-    pressure[i] *= AP_pressDecay;
   }
 }
 
 // ════════════════════════════════════════════════
-//  VELOCITY FROM PRESSURE GRADIENT
-//  Scale amplified so particles move decisively.
+//  FLUID STEP 2 — PROJECTION (subtract pressure gradient)
+//  Makes the velocity field (near) divergence-free: air diverts around
+//  walls and accelerates through openings instead of vanishing into them.
+//  AP_gradScale ×5 = projection strength (default 0.20 → 1.0 = exact).
 // ════════════════════════════════════════════════
 function computeVelocity() {
-  const rad    = windDeg * Math.PI / 180;
-  const ambVx  =  Math.sin(rad) * windSpd * AP_ambientMult;
-  const ambVy  = -Math.cos(rad) * windSpd * AP_ambientMult;
-  const gradScale = AP_gradScale;
-
-  for (let y=1; y<GH-1; y++) {
-    for (let x=1; x<GW-1; x++) {
-      const id = ci(x,y);
-      if (obstacle[id]===1) { velX[id]=velY[id]=0; continue; }
-
-      const perm = obstacle[id]===0 ? 1.0 :
-                   obstacle[id]===OBS_TREE_HIGH ? PERM_FACTOR.high :
-                   obstacle[id]===OBS_TREE_MED  ? PERM_FACTOR.med  : PERM_FACTOR.low;
-
-      function pAt(nx2,ny2){return obstacle[ci(nx2,ny2)]===1 ? pressure[id] : pressure[ci(nx2,ny2)];}
-      const dpx = (pAt(x+1,y) - pAt(x-1,y)) * 0.5;
-      const dpy = (pAt(x,y+1) - pAt(x,y-1)) * 0.5;
-
-      // Total velocity = ambient wind + local pressure deflection
-      velX[id] = (ambVx - dpx * gradScale) * perm;
-      velY[id] = (ambVy - dpy * gradScale) * perm;
+  const gs = AP_gradScale * 5;
+  for (let y = 1; y < GH - 1; y++) {
+    const row = y * GW;
+    for (let x = 1; x < GW - 1; x++) {
+      const id = row + x;
+      const o = obstacle[id];
+      if (o === 1) { velX[id] = 0; velY[id] = 0; continue; }
+      if (o >= 5) {
+        // Screen cell (membrane): through-flow = porosity × incident flow,
+        // taken from adjacent open cells. (Self-advection can't be used here:
+        // a near-zero membrane velocity backtraces into its own cell and
+        // decays to zero regardless of porosity.)
+        let su = 0, sv = 0, cnt = 0;
+        if (!POPAQ_LUT[obstacle[id - 1]])  { su += velX[id - 1];  sv += velY[id - 1];  cnt++; }
+        if (!POPAQ_LUT[obstacle[id + 1]])  { su += velX[id + 1];  sv += velY[id + 1];  cnt++; }
+        if (!POPAQ_LUT[obstacle[id - GW]]) { su += velX[id - GW]; sv += velY[id - GW]; cnt++; }
+        if (!POPAQ_LUT[obstacle[id + GW]]) { su += velX[id + GW]; sv += velY[id + GW]; cnt++; }
+        if (cnt) { velX[id] = PERM_LUT[o] * su / cnt; velY[id] = PERM_LUT[o] * sv / cnt; }
+        else { velX[id] = 0; velY[id] = 0; }
+        continue;
+      }
+      const p0 = pressure[id];
+      const pL = POPAQ_LUT[obstacle[id - 1]]  ? p0 : pressure[id - 1];
+      const pR = POPAQ_LUT[obstacle[id + 1]]  ? p0 : pressure[id + 1];
+      const pU = POPAQ_LUT[obstacle[id - GW]] ? p0 : pressure[id - GW];
+      const pD = POPAQ_LUT[obstacle[id + GW]] ? p0 : pressure[id + GW];
+      velX[id] -= 0.5 * (pR - pL) * gs;
+      velY[id] -= 0.5 * (pD - pU) * gs;
     }
   }
 }
@@ -2781,21 +2956,25 @@ function computeVelocity() {
 function initParticles() {
   particles = [];
   const gridPxW = GW * CELL, gridPxH = GH * CELL;
-  for (let i=0; i<maxParts; i++) {
+  const rad = windDeg * Math.PI / 180;
+  const wvx = Math.sin(rad), wvy = -Math.cos(rad);
+  // Longest possible downstream travel across the domain
+  const maxTravel = Math.abs(wvx) * gridPxW + Math.abs(wvy) * gridPxH;
+  for (let i = 0; i < maxParts; i++) {
     const p = mkParticle();
-    // Stagger ages across the full lifespan so particles respawn at different times
-    // giving a continuous flow rather than all dying/spawning at once.
-    // For edge mode also pre-advance position so the canvas fills immediately.
-    const staggerAge = Math.floor(Math.random() * p.life);
-    p.age = staggerAge;
-    if (spawnMode !== 'line') {
-      // Edge mode: advance position proportionally along wind direction
-      const headStart = Math.floor(Math.random() * AP_headStart);
-      const radHS = windDeg * Math.PI / 180;
-      p.x += Math.sin(radHS) * headStart * windSpd * AP_headAdvMult;
-      p.y -= Math.cos(radHS) * headStart * windSpd * AP_headAdvMult;
-      p.x = Math.max(0, Math.min(gridPxW - 1, p.x));
-      p.y = Math.max(0, Math.min(gridPxH - 1, p.y));
+    // Steady-state initialization: stagger age uniformly over the lifespan AND
+    // place each particle a uniform random distance downstream of its spawn
+    // point — exactly the distribution a long-running stream settles into.
+    // (Clamping overshooting particles to the boundary, as before, made them
+    // all exit and respawn together, causing a repeating surge wave.)
+    p.age = Math.floor(Math.random() * p.life);
+    const sx = p.x, sy = p.y;
+    for (let tries = 0; tries < 8; tries++) {
+      const d = Math.random() * maxTravel;
+      const nx = sx + wvx * d, ny = sy + wvy * d;
+      if (nx < 1 || nx > gridPxW - 2 || ny < 1 || ny > gridPxH - 2 || cellIsBlocked(nx, ny)) continue;
+      p.x = nx; p.y = ny;
+      break;
     }
     particles.push(p);
   }
@@ -2870,6 +3049,10 @@ function cellIsBlocked(px, py) {
 
 function stepParticles() {
   let totalV=0;
+  // Shared phase for spatially-coherent gust noise (real gusts are eddies,
+  // not per-particle white noise — neighbouring particles sway together)
+  const tt = performance.now() * 0.001;
+  const turbAmp = turbulence * windSpd * AP_turbCoeff;
 
   for (let i=0; i<particles.length; i++) {
     const p = particles[i];
@@ -2881,9 +3064,13 @@ function stepParticles() {
     p.vx += (tvx - p.vx) * AP_blendRatio;
     p.vy += (tvy - p.vy) * AP_blendRatio;
 
-    // Turbulence
-    p.vx += (Math.random()-0.5) * turbulence * windSpd * AP_turbCoeff;
-    p.vy += (Math.random()-0.5) * turbulence * windSpd * AP_turbCoeff;
+    // Turbulence: coherent travelling eddies + small white sub-grid diffusion
+    if (turbAmp > 0) {
+      const n1 = Math.sin(p.x*0.021 + tt*1.9) * Math.cos(p.y*0.017 - tt*1.3);
+      const n2 = Math.sin(p.y*0.023 - tt*1.1) * Math.cos(p.x*0.015 + tt*1.7);
+      p.vx += (n1 * 1.4 + (Math.random()-0.5)*0.5) * turbAmp;
+      p.vy += (n2 * 1.4 + (Math.random()-0.5)*0.5) * turbAmp;
+    }
 
     // Speed cap
     const spd = Math.hypot(p.vx, p.vy);
@@ -2897,34 +3084,30 @@ function stepParticles() {
     p.speed = Math.hypot(p.vx, p.vy);
     totalV += p.speed;
 
-    // ── Wall collision: slide along wall instead of teleporting ──
-    const nx = p.x + p.vx;
-    const ny = p.y + p.vy;
-
-    if (cellIsBlocked(nx, ny)) {
-      // Try sliding horizontally
-      const slideX = p.x + p.vx;
-      const slideY = p.y;
-      if (!cellIsBlocked(slideX, slideY)) {
-        p.x = slideX; p.y = slideY; p.vy *= -0.3;
+    // ── Sub-stepped movement: fast particles can't tunnel through walls ──
+    // On contact the normal component is zeroed (free-slip), so flow
+    // glides along façades instead of bouncing off them.
+    const nSub = p.speed > CELL*0.9 ? Math.min(3, Math.ceil(p.speed/(CELL*0.9))) : 1;
+    let moved = true;
+    for (let s=0; s<nSub; s++) {
+      const svx = p.vx / nSub, svy = p.vy / nSub;
+      const nx = p.x + svx, ny = p.y + svy;
+      if (!cellIsBlocked(nx, ny)) { p.x = nx; p.y = ny; continue; }
+      if (!cellIsBlocked(nx, p.y)) {        // slide horizontally, kill normal
+        p.x = nx; p.vy = 0;
+      } else if (!cellIsBlocked(p.x, ny)) { // slide vertically, kill normal
+        p.y = ny; p.vx = 0;
       } else {
-        // Try sliding vertically
-        const slideX2 = p.x;
-        const slideY2 = p.y + p.vy;
-        if (!cellIsBlocked(slideX2, slideY2)) {
-          p.x = slideX2; p.y = slideY2; p.vx *= -0.3;
-        } else {
-          // Fully blocked — nudge away from wall using local pressure gradient
-          const {vx:gvx, vy:gvy} = sampleField(p.x, p.y);
-          p.vx = gvx + (Math.random()-0.5)*windSpd*0.1;
-          p.vy = gvy + (Math.random()-0.5)*windSpd*0.1;
-          p.stuckFrames++;
-        }
+        // Fully cornered — let the local field push it out
+        const {vx:gvx, vy:gvy} = sampleField(p.x, p.y);
+        p.vx = gvx + (Math.random()-0.5)*windSpd*0.1;
+        p.vy = gvy + (Math.random()-0.5)*windSpd*0.1;
+        p.stuckFrames++;
+        moved = false;
+        break;
       }
-    } else {
-      p.x = nx; p.y = ny;
-      p.stuckFrames = Math.max(0, p.stuckFrames-1);
     }
+    if (moved) p.stuckFrames = Math.max(0, p.stuckFrames-1);
 
     p.age++;
 
@@ -2942,9 +3125,18 @@ function stepParticles() {
   while (particles.length<maxParts) particles.push(mkParticle());
   while (particles.length>maxParts) particles.pop();
 
-  const avg = particles.length ? (totalV/particles.length).toFixed(1) : '—';
-  document.getElementById('s-vel').textContent   = avg+' m/s';
-  document.getElementById('h-speed').textContent = avg+' m/s';
+  // Global mean speed → real m/s, lightly smoothed for a steady readout.
+  if (particles.length) {
+    const instMs = simSpeedToMs(totalV/particles.length);
+    globalAvgMs = (globalAvgMs==null) ? instMs : globalAvgMs + (instMs-globalAvgMs)*0.1;
+    const avg = globalAvgMs.toFixed(1);
+    document.getElementById('s-vel').textContent   = avg+' m/s';
+    document.getElementById('h-speed').textContent = avg+' m/s';
+  } else {
+    globalAvgMs = null;
+    document.getElementById('s-vel').textContent   = '— m/s';
+    document.getElementById('h-speed').textContent = '— m/s';
+  }
 }
 
 function lerp(a,b,t){ return a+(b-a)*t; }
@@ -3666,6 +3858,179 @@ function simLoop(now) {
   if (simRunning) animId = requestAnimationFrame(simLoop);
 }
 
+// Seed the velocity field with ambient wind so flow is established
+// instantly on RUN (the gentle drive rate alone would take ~1.5 s to spin up)
+function seedVelocityField() {
+  if (!velX) return;
+  const r = windDeg * Math.PI / 180;
+  const ax =  Math.sin(r) * windSpd * AP_ambientMult;
+  const ay = -Math.cos(r) * windSpd * AP_ambientMult;
+  for (let i = 0; i < GW * GH; i++) {
+    if (obstacle[i] !== 1) { velX[i] = ax; velY[i] = ay; }
+  }
+}
+
+// ════════════════════════════════════════════════
+//  SCREENSHOT MODE
+//  Toggle hides the UI chrome and shows title/scale/legend overlays for a
+//  clean export. The COPY IMAGE button composites the visual canvas layers
+//  (+ overlays) and writes a PNG to the clipboard. Toggling off restores the
+//  exact prior view (sidebar state, zoom HUD, overlays) untouched.
+// ════════════════════════════════════════════════
+let screenshotMode = false;
+let _shotPrevLightMode = false;   // remember the user's theme to restore on exit
+let _shotPrevShowGrid = true;     // remember grid visibility to restore on exit
+
+function refreshExportOverlay() {
+  document.getElementById('exp-title').textContent = projectName || 'Untitled Project';
+  // Wind direction named by where it comes FROM (meteorological convention),
+  // matching the header widget and the direction buttons.
+  const dirs = ['S','SW','W','NW','N','NE','E','SE'];
+  const dir = dirs[Math.round(((windDeg % 360) + 360) % 360 / 45) % 8];
+  document.getElementById('exp-sub').textContent =
+    `Wind ${windSpd} m/s from ${dir} (${windDeg}°)  ·  ${BASE_GRID_W_M}×${BASE_GRID_H_M} m  ·  Turbulence ${turbulence.toFixed(2)}`;
+  // Scale bar: pick a round real-world length, draw it at the right pixel width.
+  // px-per-metre in the current view = (canvas px) / (real metres shown).
+  const pxPerM = (canvasW / BASE_GRID_W_M) * (zoomLevel || 1);
+  const targets = [1,2,5,10,20,50,100];
+  let meters = targets[0];
+  for (const t of targets) { if (t * pxPerM <= 130) meters = t; }
+  document.getElementById('exp-scale-line').style.width = Math.max(20, meters * pxPerM) + 'px';
+  document.getElementById('exp-scale-txt').textContent = meters + ' m';
+  // Match the pressure legend to the active colour scheme (dark/light).
+  const lightMode = document.getElementById('pscale-overlay')?.classList.contains('light');
+  document.getElementById('exp-leg-bar').style.background = lightMode
+    ? 'linear-gradient(to right,#6496ff,#a0c8ff,#f0f2f5,#ffb0a0,#e84040)'
+    : 'linear-gradient(to right,#0a4f8c,#0a9e8c,#0a0f14,#c05820,#c01828)';
+}
+
+function toggleScreenshotMode() {
+  screenshotMode = !screenshotMode;
+  document.body.classList.toggle('shot-mode', screenshotMode);
+  const tog = document.getElementById('shot-toggle');
+  tog.classList.toggle('active', screenshotMode);
+  document.getElementById('shot-lbl').textContent = screenshotMode ? 'EXIT SHOT' : 'SCREENSHOT';
+  document.getElementById('shot-sep').style.display = screenshotMode ? '' : 'none';
+  if (screenshotMode) {
+    // Switch to the clean white (light) export theme, remembering the user's
+    // current theme so EXIT restores exactly what they had.
+    _shotPrevLightMode = lightMode;
+    if (!lightMode) toggleLightMode();
+    // Hide the grid for a clean export, remembering its prior state.
+    _shotPrevShowGrid = showGrid;
+    showGrid = false;
+    drawGridLines();
+    refreshExportOverlay();
+    flashHint('📸 Screenshot mode — press COPY IMAGE to grab the canvas');
+  } else {
+    // Restore the prior theme + grid if we changed them on entry.
+    if (lightMode !== _shotPrevLightMode) toggleLightMode();
+    if (showGrid !== _shotPrevShowGrid) {
+      showGrid = _shotPrevShowGrid;
+      const gtg = document.getElementById('tg-grid');
+      if (gtg) gtg.classList.toggle('on', showGrid);
+      drawGridLines();
+    }
+  }
+}
+
+// Composite visual layers (skip the interaction layer) into one canvas at
+// native resolution, stamp the export overlay text/legend, copy PNG to clipboard.
+async function captureCanvas() {
+  refreshExportOverlay();
+  const layerIds = ['cvs-grid','cvs-image','cvs-pressure','cvs-walls','cvs-particles','cvs-zone'];
+  const out = document.createElement('canvas');
+  out.width = canvasW; out.height = canvasH;
+  const cx = out.getContext('2d');
+  // White background to match the light export theme (matches canvas-wrap in light mode)
+  cx.fillStyle = (screenshotMode || lightMode) ? '#f0f2f5'
+               : (getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#080a0f');
+  cx.fillRect(0, 0, canvasW, canvasH);
+  for (const id of layerIds) {
+    const c = document.getElementById(id);
+    if (c && c.width) { try { cx.drawImage(c, 0, 0, canvasW, canvasH); } catch (e) {} }
+  }
+  drawExportDecorations(cx);
+  try {
+    const blob = await new Promise(res => out.toBlob(res, 'image/png'));
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      flashHint('✓ Image copied to clipboard');
+    } else { throw new Error('clipboard image unsupported'); }
+  } catch (e) {
+    // Fallback for browsers without image-clipboard support: download instead
+    const a = document.createElement('a');
+    a.href = out.toDataURL('image/png');
+    a.download = (projectName || 'wind-sim').replace(/[^a-z0-9]/gi,'_').toLowerCase() + '.png';
+    a.click();
+    flashHint('✓ Image downloaded (clipboard not supported here)');
+  }
+}
+
+// Draw the title / wind info / scale bar / legend directly onto the export
+// canvas so they're baked into the copied image (the DOM overlay is preview-only).
+function drawExportDecorations(cx) {
+  cx.save();
+  cx.textBaseline = 'alphabetic';
+  // White export background → dark text with a soft light halo for legibility.
+  cx.shadowColor = 'rgba(255,255,255,0.7)'; cx.shadowBlur = 3; cx.shadowOffsetY = 1;
+  cx.fillStyle = '#141820';
+  cx.font = "700 15px 'Space Mono', monospace";
+  cx.fillText(projectName || 'Untitled Project', 16, 28);
+  cx.shadowBlur = 2;
+  cx.fillStyle = '#3a4560';
+  cx.font = "10px 'Space Mono', monospace";
+  cx.fillText(document.getElementById('exp-sub').textContent, 16, 48);
+  cx.shadowBlur = 0; cx.shadowOffsetY = 0;
+
+  // Scale bar (bottom-left)
+  const pxPerM = (canvasW / BASE_GRID_W_M) * (zoomLevel || 1);
+  const targets = [1,2,5,10,20,50,100];
+  let meters = targets[0]; for (const t of targets) { if (t * pxPerM <= 130) meters = t; }
+  const sbW = Math.max(20, meters * pxPerM);
+  const sbX = 16, sbY = canvasH - 22;
+  cx.fillStyle = 'rgba(255,255,255,0.82)';
+  roundRect(cx, sbX-7, sbY-12, sbW+14, 30, 5); cx.fill();
+  cx.strokeStyle = 'rgba(40,55,90,0.25)'; cx.stroke();
+  cx.fillStyle = '#1a2030'; cx.fillRect(sbX, sbY, sbW, 3);
+  cx.fillStyle = '#4a5876'; cx.font = "8px 'Space Mono', monospace";
+  cx.textAlign = 'center'; cx.fillText(meters + ' m', sbX + sbW/2, sbY + 14);
+  cx.textAlign = 'left';
+
+  // Legend (bottom-right): two gradient bars with labels
+  const lw = 168, lh = 84, lx = canvasW - lw - 16, ly = canvasH - lh - 16;
+  const lightMode = document.getElementById('pscale-overlay')?.classList.contains('light');
+  cx.fillStyle = 'rgba(255,255,255,0.82)';
+  roundRect(cx, lx, ly, lw, lh, 5); cx.fill();
+  cx.strokeStyle = 'rgba(40,55,90,0.25)'; cx.stroke();
+  const gradBar = (yy, stops, t0, t1, t2, label) => {
+    cx.fillStyle = '#5a6886'; cx.font = "8px 'Space Mono', monospace";
+    cx.fillText(label, lx+11, yy-4);
+    const g = cx.createLinearGradient(lx+11, 0, lx+lw-11, 0);
+    stops.forEach((s,i) => g.addColorStop(i/(stops.length-1), s));
+    cx.fillStyle = g; cx.fillRect(lx+11, yy, lw-22, 7);
+    cx.fillStyle = '#4a5876'; cx.font = "7px 'Space Mono', monospace";
+    cx.fillText(t0, lx+11, yy+18);
+    cx.textAlign = 'center'; cx.fillText(t1, lx+lw/2, yy+18);
+    cx.textAlign = 'right'; cx.fillText(t2, lx+lw-11, yy+18); cx.textAlign = 'left';
+  };
+  const pStops = lightMode ? ['#6496ff','#a0c8ff','#f0f2f5','#ffb0a0','#e84040']
+                           : ['#0a4f8c','#0a9e8c','#0a0f14','#c05820','#c01828'];
+  gradBar(ly+18, pStops, 'Suction', '0', 'Compression', 'PRESSURE');
+  gradBar(ly+58, ['rgb(26,200,95)','rgb(234,179,20)','rgb(240,48,72)'], 'Slow', 'Med', 'Fast', 'PARTICLE SPEED');
+  cx.restore();
+}
+
+function roundRect(cx, x, y, w, h, r) {
+  cx.beginPath();
+  cx.moveTo(x+r, y);
+  cx.arcTo(x+w, y, x+w, y+h, r);
+  cx.arcTo(x+w, y+h, x, y+h, r);
+  cx.arcTo(x, y+h, x, y, r);
+  cx.arcTo(x, y, x+w, y, r);
+  cx.closePath();
+}
+
 function toggleSim() {
   simRunning = !simRunning;
   simPaused = false;
@@ -3675,7 +4040,7 @@ function toggleSim() {
     btn.classList.add('running'); lbl.textContent='STOP SIM';
     pauseBtn.style.display='flex'; pauseLbl.textContent='⏸ PAUSE';
     pauseBtn.style.borderColor='var(--amber)'; pauseBtn.style.color='var(--amber)';
-    buildObstacles(); initParticles(); simLoop();
+    buildObstacles(); seedVelocityField(); initParticles(); simLoop();
   } else {
     btn.classList.remove('running'); lbl.textContent='RUN SIM';
     pauseBtn.style.display='none';
@@ -3686,6 +4051,9 @@ function toggleSim() {
     if (velX) velX.fill(0); if (velY) velY.fill(0);
     document.getElementById('h-pressure').textContent='—';
     document.getElementById('h-speed').textContent='— m/s';
+    // Reset smoothed readouts so the next RUN doesn't inherit stale averages
+    globalAvgMs = null;
+    zones.forEach(z => z.avg = null);
   }
 }
 
@@ -5028,23 +5396,33 @@ function drawZone() {
 }
 
 function measureZones() {
-  if (!simRunning) return;
+  if (!simRunning || !velX) return;
   zones.forEach(z => {
+    // Spatial average of the true velocity FIELD over the zone's open cells.
+    // (Field-based, not particle-based: it is density-unbiased and stable —
+    //  fast lanes hold few particles and used to read noisily.) Bounding-box
+    //  prescan keeps it O(cells in box) rather than O(whole grid) per zone.
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for (const pt of z.points){ if(pt.x<minX)minX=pt.x; if(pt.x>maxX)maxX=pt.x; if(pt.y<minY)minY=pt.y; if(pt.y>maxY)maxY=pt.y; }
+    const gx0=Math.max(0,Math.floor(minX/CELL)), gx1=Math.min(GW-1,Math.ceil(maxX/CELL));
+    const gy0=Math.max(0,Math.floor(minY/CELL)), gy1=Math.min(GH-1,Math.ceil(maxY/CELL));
     let sum=0, count=0;
-    for (const p of particles) {
-      if (pointInPolygon(p.x, p.y, z.points)) { sum+=p.speed; count++; }
-    }
-    if (count < 5 && velX) {
-      for (let gy=0;gy<GH;gy++) {
-        for (let gx=0;gx<GW;gx++) {
-          const id=ci(gx,gy);
-          if (obstacle[id]) continue;
-          const px=gx*CELL+CELL/2, py=gy*CELL+CELL/2;
-          if (pointInPolygon(px,py,z.points)) { sum+=Math.hypot(velX[id],velY[id]); count++; }
-        }
+    for (let gy=gy0; gy<=gy1; gy++) {
+      for (let gx=gx0; gx<=gx1; gx++) {
+        const id=ci(gx,gy);
+        if (obstacle[id]) continue;                 // skip solids & screens
+        const px=gx*CELL+CELL/2, py=gy*CELL+CELL/2;
+        if (pointInPolygon(px,py,z.points)) { sum+=Math.hypot(velX[id],velY[id]); count++; }
       }
     }
-    z.avg = count>0 ? sum/count : 0;
+    // Tiny zones smaller than one cell: sample the field at the centroid.
+    if (count===0) {
+      let cx=0,cy=0; for(const pt of z.points){cx+=pt.x;cy+=pt.y;} cx/=z.points.length; cy/=z.points.length;
+      const s2=sampleField(cx,cy); sum=Math.hypot(s2.vx,s2.vy); count=1;
+    }
+    const instMs = simSpeedToMs(sum/count);          // → real m/s
+    // Exponential smoothing so the HUD reads steadily instead of flickering.
+    z.avg = (z.avg==null) ? instMs : z.avg + (instMs - z.avg) * 0.12;
     if      (z.avg<=0.5){ z.tagClass='at-stagnant'; z.tagText='Stagnant'; }
     else if (z.avg<=1.5){ z.tagClass='at-optimal';  z.tagText='Optimal'; }
     else if (z.avg<=3.0){ z.tagClass='at-strong';   z.tagText='Strong'; }
@@ -5617,7 +5995,7 @@ function setResolution(cellSize) {
   const wasRunning = simRunning;
   if (simRunning) { cancelAnimationFrame(animId); simRunning=false; }
   resize(); // recomputes GW/GH, reinits arrays, redraws
-  if (wasRunning) { simRunning=true; buildObstacles(); initParticles(); simLoop(); }
+  if (wasRunning) { simRunning=true; buildObstacles(); seedVelocityField(); initParticles(); simLoop(); }
   const resLabels = {4:'✓ Ultra resolution — 4× cells, may affect performance', 8:'✓ High resolution — finer flow detail', 16:'✓ Low resolution — faster performance'};
   flashHint(resLabels[cellSize] || '✓ Resolution changed');
 }
