@@ -134,6 +134,15 @@ function showBanner(msg, type) {
   b.textContent = msg; b.className = 'banner ' + type;
 }
 
+// Email-confirmation landing: supabase-js reads the session from the URL
+// (detectSessionInUrl) and stores it for this origin; if one exists, continue to the app.
+sb.auth.onAuthStateChange((event, session) => {
+  if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') &&
+      /access_token|type=signup|code=/.test(location.hash + location.search)) {
+    window.location.replace('simulator.html');
+  }
+});
+
 async function doLogin() {
   const email    = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;

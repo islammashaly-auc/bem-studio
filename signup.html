@@ -388,7 +388,11 @@ async function doSignup() {
     password,
     options: {
       data: { username },                         // stored in user_metadata
-      emailRedirectTo: window.location.origin + '/login.html',
+      // Always send confirmation links to the custom domain (not *.netlify.app),
+      // except on localhost for development. Must be in Supabase Redirect URLs.
+      emailRedirectTo: (['localhost','127.0.0.1'].includes(location.hostname)
+                         ? window.location.origin
+                         : 'https://bemstudio.au') + '/login.html',
     }
   });
 
