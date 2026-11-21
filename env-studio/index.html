@@ -2201,11 +2201,12 @@
   .wri-del { background:none; border:none; color:var(--dim); cursor:pointer; font-size:11px; padding:2px 4px; }
   .wri-del:hover { color:var(--red); }
   .cloud-save-status { color:var(--accent); font:10px 'Space Mono',monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cloud-save-status:not(:empty) { margin-inline-end:12px; }
   .cloud-project-dialog { color:var(--text); background:var(--surface); border:1px solid var(--border2); border-radius:8px; width:min(420px,90vw); padding:18px; }
   .cloud-project-dialog::backdrop { background:#0008; }
   .cloud-project-dialog header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
   .cloud-project-dialog .wrecent-list { max-height:50vh; }
-  .cloud-menu-item { width:100%; border:0; background:none; text-align:left; }
+  .cloud-menu-item { width:100%; border:0; background:none; text-align:left; font:inherit; }
 
   /* Draw mode selector row */
   .draw-mode-row { display:flex; gap:4px; margin-bottom:8px; }
@@ -2876,10 +2877,9 @@
       <div class="hdr-dropdown" id="dd-file">
         <div class="hdr-dd-item" onclick="closeMenus();newProject()"><span class="di">📄</span>New Project<span class="dk">Ctrl+N</span></div>
         <div class="hdr-dd-item" onclick="closeMenus();saveToFile()"><span class="di">💾</span>Save<span class="dk">Ctrl+S</span></div>
+        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-save-menu"><span class="di" aria-hidden="true">☁</span>Save to Cloud</button>
         <div class="hdr-dd-item" onclick="closeMenus();document.getElementById('file-load').click()"><span class="di">📂</span>Open<span class="dk">Ctrl+O</span></div>
-        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-open-menu">Open Cloud Project…</button>
-        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-save-menu">Save to Cloud</button>
-        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-sign-out">Sign Out</button>
+        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-open-menu"><span class="di" aria-hidden="true">☁</span>Open Cloud Project…</button>
         <div class="hdr-dd-item" onclick="closeMenus();document.getElementById('file-load-image').click()"><span class="di">🖼</span>Import Image (JPG/PNG/GIF)</div>
         <div class="hdr-dd-item" onclick="closeMenus();openImageManager()"><span class="di">🗂</span>Manage Images</div>
         <div class="hdr-dd-item" onclick="closeMenus();document.getElementById('file-load-ifc').click()"><span class="di">🏗</span>Import IFC (Walls + Zones)</div>
@@ -2887,6 +2887,8 @@
         <div class="hdr-dd-item" onclick="closeMenus();openAdvancedSettings()"><span class="di">⚙</span>Advanced Settings</div>
         <div class="hdr-dd-sep"></div>
         <div class="hdr-dd-item" onclick="closeMenus();exportPNG()"><span class="di">🖼</span>Export PNG</div>
+        <div class="hdr-dd-sep"></div>
+        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-sign-out"><span class="di" aria-hidden="true">↪</span>Sign Out</button>
       </div>
     </div>
     <button class="hdr-menu-btn" id="menu-edit" onclick="toggleMenu('menu-edit')">Edit
