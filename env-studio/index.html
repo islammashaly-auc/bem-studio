@@ -241,7 +241,8 @@
     box-shadow:var(--shadow);
     font-family:'Space Mono',monospace; font-size:var(--fs-body);
   }
-  .hdr-menu-btn.open .hdr-dropdown { display:block; }
+  .hdr-menu-btn.open .hdr-dropdown,
+  .hdr-menu-btn.open + .hdr-dropdown { display:block; }
   .hdr-dd-item {
     display:flex; align-items:center; gap:10px;
     padding:7px 14px; cursor:pointer; color:var(--text);
@@ -2870,7 +2871,8 @@
 
   <!-- Menu bar -->
   <div class="hdr-menu-bar">
-    <button class="hdr-menu-btn" id="menu-file" onclick="toggleMenu('menu-file')">File
+    <div class="hdr-menu-anchor">
+      <button type="button" class="hdr-menu-btn" id="menu-file" aria-controls="dd-file" aria-expanded="false" onclick="toggleMenu('menu-file')">File</button>
       <div class="hdr-dropdown" id="dd-file">
         <div class="hdr-dd-item" onclick="closeMenus();newProject()"><span class="di">📄</span>New Project<span class="dk">Ctrl+N</span></div>
         <div class="hdr-dd-item" onclick="closeMenus();saveToFile()"><span class="di">💾</span>Save<span class="dk">Ctrl+S</span></div>
@@ -2886,7 +2888,7 @@
         <div class="hdr-dd-sep"></div>
         <div class="hdr-dd-item" onclick="closeMenus();exportPNG()"><span class="di">🖼</span>Export PNG</div>
       </div>
-    </button>
+    </div>
     <button class="hdr-menu-btn" id="menu-edit" onclick="toggleMenu('menu-edit')">Edit
       <div class="hdr-dropdown" id="dd-edit">
         <div class="hdr-dd-item" id="edit-copy" onclick="closeMenus();beginCopy2D()"><span class="di"><svg class="lucide-icon" aria-hidden="true"><use href="#lucide-copy"/></svg></span>Copy<span class="dk">Ctrl+C</span></div>
@@ -33630,10 +33632,11 @@ function onDocClick(e) {
 function toggleMenu(id) {
   const btn=document.getElementById(id);
   const wasOpen=btn.classList.contains('open');
-  document.querySelectorAll('.hdr-menu-btn').forEach(b=>b.classList.remove('open'));
+  closeMenus();
   if(!wasOpen) {
     btn.classList.add('open');
-    const dd=btn.querySelector('.hdr-dropdown');
+    if(btn.hasAttribute('aria-expanded')) btn.setAttribute('aria-expanded','true');
+    const dd=document.getElementById(btn.getAttribute('aria-controls')) || btn.querySelector('.hdr-dropdown');
     if(dd){
       const r=btn.getBoundingClientRect();
       dd.style.top=(r.bottom+2)+'px'; dd.style.left=r.left+'px';
@@ -33641,7 +33644,10 @@ function toggleMenu(id) {
   }
 }
 function closeMenus() {
-  document.querySelectorAll('.hdr-menu-btn').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('.hdr-menu-btn').forEach(button=>{
+    button.classList.remove('open');
+    if(button.hasAttribute('aria-expanded')) button.setAttribute('aria-expanded','false');
+  });
 }
 
 function toggleClimatePopup(e) {
