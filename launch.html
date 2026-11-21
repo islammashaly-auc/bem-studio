@@ -20,6 +20,12 @@
     .tools { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
     .tool { display:flex; flex-direction:column; padding:24px; border:1px solid #2a3348; border-radius:12px; background:#141820; color:inherit; text-decoration:none; }
     .tool:hover, .tool:focus-visible { border-color:#3de8b0; }
+    .tool-icons { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .tool-icon { display:block; width:32px; height:32px; flex:0 0 32px; }
+    .icon-energy { color:#3de8b0; }
+    .icon-daylight { color:#f0a832; }
+    .icon-solar { color:#ffd34e; }
+    .icon-wind { color:#4a9ef0; }
     .tool h2 { margin:0; font-size:25px; }
     .tool p { color:#b8c8e0; line-height:1.55; flex:1; }
     .tool span { color:#3de8b0; font:700 13px 'Space Mono',monospace; }
@@ -28,6 +34,23 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute">
+    <symbol id="icon-energy" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M13.2 1.8 3.8 13.4a1 1 0 0 0 .78 1.63h6.05l-1.1 6.02a1 1 0 0 0 1.75.82l9.03-11.28A1 1 0 0 0 19.53 9h-5.86l1.28-6.38a1 1 0 0 0-1.75-.82Z"/>
+    </symbol>
+    <symbol id="icon-daylight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/>
+    </symbol>
+    <symbol id="icon-solar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 2h2M14.28 14l-4.56 8M21 22l-1.558-4H4.558M3 10v2"/>
+      <path d="M6.245 15.04A2 2 0 0 1 8 14h12a1 1 0 0 1 .864 1.505l-3.11 5.457A2 2 0 0 1 16 22H4a1 1 0 0 1-.863-1.506z"/>
+      <path d="M7 2a4 4 0 0 1-4 4M8.66 7.66l1.41 1.41"/>
+    </symbol>
+    <symbol id="icon-wind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M3 8h10.5a2.5 2.5 0 1 0-2.45-3M3 12h15.5a2.5 2.5 0 1 1-2.45 3M3 16h7"/>
+    </symbol>
+  </svg>
   <header>
     <a href="index.html"><img src="images/BEMStudio_logo.png" alt="BEM Studio home"></a>
     <button id="sign-out" type="button" hidden>Sign out</button>
@@ -37,11 +60,20 @@
     <p id="launch-status" role="status">Checking your sign-in…</p>
     <div class="tools" id="tools" hidden>
       <a class="tool" href="env-studio/">
+        <div class="tool-icons" aria-hidden="true">
+          <svg class="tool-icon icon-energy"><use href="#icon-energy"/></svg>
+          <svg class="tool-icon icon-daylight"><use href="#icon-daylight"/></svg>
+          <svg class="tool-icon icon-solar"><use href="#icon-solar"/></svg>
+          <svg class="tool-icon icon-wind"><use href="#icon-wind"/></svg>
+        </div>
         <h2>ENV Studio</h2>
         <p>Model a building once and explore energy, daylight, solar and wind. Open your ENV Studio cloud projects from the welcome screen.</p>
         <span>Open ENV Studio →</span>
       </a>
       <a class="tool" href="simulator.html">
+        <div class="tool-icons" aria-hidden="true">
+          <svg class="tool-icon icon-wind"><use href="#icon-wind"/></svg>
+        </div>
         <h2>WindFlow</h2>
         <p>Sketch a floor plan, visualise indoor airflow and reopen your saved WindFlow projects.</p>
         <span>Open WindFlow →</span>
