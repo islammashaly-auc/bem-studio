@@ -5,18 +5,10 @@ const client = window.supabase.createClient(
 );
 const login = '../login.html?next=env-studio';
 const table = 'env_studio_preview_projects';
-const panel = document.createElement('div');
-const status = document.createElement('span');
-status.setAttribute('role', 'status');
-const projects = document.createElement('select');
-projects.setAttribute('aria-label', 'Cloud projects');
-const open = document.createElement('button');
-open.textContent = 'Open cloud project';
-const signOut = document.createElement('button');
-signOut.textContent = 'Sign out';
-panel.style.cssText = 'position:fixed;bottom:0;right:0;z-index:9999;background:#141820;color:#e6edf7;padding:6px;display:flex;gap:8px;align-items:center';
-panel.append(status, projects, open, signOut);
-document.body.append(panel);
+const status = document.getElementById('cloud-save-status');
+const dialog = document.getElementById('cloud-project-dialog');
+const lists = ['welcome-cloud-projects', 'file-cloud-projects']
+  .map(id => document.getElementById(id));
 
 const { data: { user } } = await client.auth.getUser();
 if (!user) {
@@ -31,7 +23,6 @@ function setup(user) {
   let active = null;
   let saving = false;
   let opening = false;
-  const defaultOption = () => new Option('Cloud projects', '');
   const snapshot = () => JSON.stringify({ ...window.collectState(), projectName });
   const reset = () => {
     active = { id: crypto.randomUUID(), revision: 0, saved: snapshot(), pending: null };
@@ -52,33 +43,47 @@ function setup(user) {
   };
 
   async function refresh() {
-    const { data, error } = await client.from(table).select('id,name')
+    const { data, error } = await client.from(table).select('id,name,updated_at')
       .eq('user_id', user.id).order('updated_at', { ascending: false });
-    if (error) {
-      status.textContent = 'Cloud project list unavailable';
-      return;
+    for (const list of lists) {
+      if (error || !data.length) {
+        list.textContent = error ? 'Cloud projects unavailable.' : 'No cloud projects yet.';
+        continue;
+      }
+      list.replaceChildren(...data.map(project => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'wrecent-item';
+        const name = document.createElement('span');
+        name.className = 'wri-name';
+        name.textContent = project.name;
+        const date = document.createElement('span');
+        date.className = 'wri-meta';
+        date.textContent = new Date(project.updated_at).toLocaleDateString();
+        button.append(name, date);
+        button.onclick = () => void openProject(project.id);
+        return button;
+      }));
     }
-    const selected = projects.value;
-    projects.replaceChildren(defaultOption(), ...data.map(row => new Option(row.name, row.id)));
-    if (data.some(row => row.id === selected)) projects.value = selected;
   }
 
-  async function save() {
+  async function save(immediate = false) {
     const project = active;
-    if (!project || saving || project.conflict) return;
+    if (!project || opening || saving || project.conflict) return;
     const latest = snapshot();
-    if (latest === project.saved) {
+    if (latest === project.saved && (!immediate || project.revision)) {
       project.pending = null;
       return;
     }
-    if (latest !== project.pending) {
+    if (!immediate && latest !== project.pending) {
       project.pending = latest;
       project.changedAt = Date.now();
       status.textContent = 'Cloud changes pending';
       return;
     }
-    if (Date.now() - project.changedAt < 2500) return;
+    if (!immediate && Date.now() - project.changedAt < 2500) return;
     saving = true;
+    status.textContent = 'Saving to cloud…';
     const data = JSON.parse(latest);
     const row = { name: data.projectName, data, revision: project.revision + 1, updated_at: new Date().toISOString() };
     try {
@@ -103,26 +108,38 @@ function setup(user) {
     }
   }
 
-  open.onclick = async () => {
-    if (!projects.value || opening || saving) return;
+  async function openProject(id) {
+    if (opening || saving) return;
     if (active && snapshot() !== active.saved && !confirm('Open another project and discard unsaved changes?')) return;
     opening = true;
     try {
       const { data, error } = await client.from(table).select('id,name,data,revision')
-        .eq('id', projects.value).single();
+        .eq('id', id).single();
       if (error) throw error;
-      window.hideWelcomeOverlay();
       window.applyState(data.data);
       window.setProjectName(data.name);
       active = { id: data.id, revision: data.revision, saved: snapshot(), pending: null };
-      status.textContent = 'Opened cloud project';
+      dialog.close();
+      window.hideWelcomeOverlay();
+      status.textContent = 'Saved to cloud';
     } catch {
       status.textContent = 'Could not open cloud project';
+      window.flashHint('Could not open cloud project', 'warning');
     } finally {
       opening = false;
     }
+  }
+  document.getElementById('cloud-open-menu').onclick = () => {
+    window.closeMenus();
+    dialog.showModal();
+    void refresh();
   };
-  signOut.onclick = async () => {
+  document.getElementById('cloud-save-menu').onclick = () => {
+    window.closeMenus();
+    void save(true);
+  };
+  document.getElementById('cloud-sign-out').onclick = async () => {
+    window.closeMenus();
     if (active && snapshot() !== active.saved && !confirm('Sign out with unsaved cloud changes?')) return;
     const { error } = await client.auth.signOut();
     if (error) status.textContent = 'Sign-out failed';
