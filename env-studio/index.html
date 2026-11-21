@@ -2199,6 +2199,12 @@
   .wri-meta { font-size:9px; color:var(--dim); font-family:'Space Mono',monospace; margin-top:1px; }
   .wri-del { background:none; border:none; color:var(--dim); cursor:pointer; font-size:11px; padding:2px 4px; }
   .wri-del:hover { color:var(--red); }
+  .cloud-save-status { color:var(--accent); font:10px 'Space Mono',monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cloud-project-dialog { color:var(--text); background:var(--surface); border:1px solid var(--border2); border-radius:8px; width:min(420px,90vw); padding:18px; }
+  .cloud-project-dialog::backdrop { background:#0008; }
+  .cloud-project-dialog header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .cloud-project-dialog .wrecent-list { max-height:50vh; }
+  .cloud-menu-item { width:100%; border:0; background:none; text-align:left; }
 
   /* Draw mode selector row */
   .draw-mode-row { display:flex; gap:4px; margin-bottom:8px; }
@@ -2869,6 +2875,9 @@
         <div class="hdr-dd-item" onclick="closeMenus();newProject()"><span class="di">📄</span>New Project<span class="dk">Ctrl+N</span></div>
         <div class="hdr-dd-item" onclick="closeMenus();saveToFile()"><span class="di">💾</span>Save<span class="dk">Ctrl+S</span></div>
         <div class="hdr-dd-item" onclick="closeMenus();document.getElementById('file-load').click()"><span class="di">📂</span>Open<span class="dk">Ctrl+O</span></div>
+        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-open-menu">Open Cloud Project…</button>
+        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-save-menu">Save to Cloud</button>
+        <button type="button" class="hdr-dd-item cloud-menu-item" id="cloud-sign-out">Sign Out</button>
         <div class="hdr-dd-item" onclick="closeMenus();document.getElementById('file-load-image').click()"><span class="di">🖼</span>Import Image (JPG/PNG/GIF)</div>
         <div class="hdr-dd-item" onclick="closeMenus();openImageManager()"><span class="di">🗂</span>Manage Images</div>
         <div class="hdr-dd-item" onclick="closeMenus();document.getElementById('file-load-ifc').click()"><span class="di">🏗</span>Import IFC (Walls + Zones)</div>
@@ -2947,6 +2956,7 @@
   <div class="hdr-stat"><span class="lbl">FLOORS</span><span class="val" id="h-floors">0</span></div>
 
   <div class="hdr-appearance appearance">
+    <span class="cloud-save-status" id="cloud-save-status" role="status"></span>
     <button class="theme-switch" id="theme-switch" type="button" role="switch"
       aria-label="Dark theme" aria-checked="true" title="Switch to light theme"
       onclick="toggleTheme()">
@@ -4828,6 +4838,10 @@
       <label class="wlabel w-form-step" for="wname-inp">Project Name</label>
       <input class="winp w-form-step" id="wname-inp" placeholder="e.g. Office Floor Plan" autocomplete="off">
       <button class="wbtn w-form-step" onclick="startProject()">Start Project →</button>
+      <section class="wrecent-section w-form-step" aria-labelledby="welcome-cloud-label">
+        <div class="wrecent-label" id="welcome-cloud-label">Cloud Projects</div>
+        <div class="wrecent-list" id="welcome-cloud-projects">Loading projects…</div>
+      </section>
       <div class="wrecent-section w-form-step" id="wrecent-section" style="display:none;">
         <div class="wrecent-label">Recent Projects</div>
         <div class="wrecent-list" id="wrecent-list"></div>
@@ -4836,6 +4850,13 @@
   </main>
 </div>
 
+<dialog class="cloud-project-dialog" id="cloud-project-dialog" aria-labelledby="cloud-project-title">
+  <header>
+    <h2 id="cloud-project-title">Cloud Projects</h2>
+    <form method="dialog"><button type="submit">Close</button></form>
+  </header>
+  <div class="wrecent-list" id="file-cloud-projects">Loading projects…</div>
+</dialog>
 <script type="module" src="./src/welcome-animation.mjs?v=20260814-lens12"></script>
 
 <script>
