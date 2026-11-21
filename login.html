@@ -159,7 +159,8 @@ async function doLogin() {
     return;
   }
   // Redirect to the protected simulator
-  window.location.href = 'simulator.html';
+  const preview = new URLSearchParams(location.search).get('next') === 'env-studio';
+  window.location.href = preview ? 'env-studio/' : 'simulator.html';
 }
 document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 </script>

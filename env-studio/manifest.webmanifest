@@ -1,0 +1,19 @@
+{
+  "name": "ENV Studio",
+  "short_name": "ENV Studio",
+  "description": "Multi-physics environmental design for energy, daylight, solar and wind.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080a0f",
+  "theme_color": "#141820",
+  "icons": [
+    {
+      "src": "./assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
