@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BEM Studio — Choose a tool</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap">
+  <style>
+    :root { color-scheme:dark; font-family:Syne,system-ui,sans-serif; background:#080a0f; color:#e6edf7; }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; min-height:100vh; background:radial-gradient(ellipse at top,#10201f,transparent 52%); }
+    header, main { width:min(920px,calc(100% - 40px)); margin:auto; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:24px 0; }
+    header a, header button { color:#b8c8e0; font:13px 'Space Mono',monospace; }
+    header img { display:block; width:auto; height:32px; }
+    header button { border:1px solid #2a3348; border-radius:6px; background:#141820; padding:8px 12px; cursor:pointer; }
+    main { padding:clamp(24px,8vh,80px) 0; }
+    h1 { margin:0 0 24px; font-size:clamp(32px,6vw,54px); }
+    .tools { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+    .tool { display:flex; flex-direction:column; padding:24px; border:1px solid #2a3348; border-radius:12px; background:#141820; color:inherit; text-decoration:none; }
+    .tool:hover, .tool:focus-visible { border-color:#3de8b0; }
+    .tool h2 { margin:0; font-size:25px; }
+    .tool p { color:#b8c8e0; line-height:1.55; flex:1; }
+    .tool span { color:#3de8b0; font:700 13px 'Space Mono',monospace; }
+    @media (max-width:600px) { .tools { grid-template-columns:1fr; } }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <a href="index.html"><img src="images/BEMStudio_logo.png" alt="BEM Studio home"></a>
+    <button id="sign-out" type="button" hidden>Sign out</button>
+  </header>
+  <main>
+    <h1>Choose a tool</h1>
+    <p id="launch-status" role="status">Checking your sign-in…</p>
+    <div class="tools" id="tools" hidden>
+      <a class="tool" href="env-studio/">
+        <h2>ENV Studio</h2>
+        <p>Model a building once and explore energy, daylight, solar and wind. Open your ENV Studio cloud projects from the welcome screen.</p>
+        <span>Open ENV Studio →</span>
+      </a>
+      <a class="tool" href="simulator.html">
+        <h2>WindFlow</h2>
+        <p>Sketch a floor plan, visualise indoor airflow and reopen your saved WindFlow projects.</p>
+        <span>Open WindFlow →</span>
+      </a>
+    </div>
+    <noscript>Enable JavaScript to sign in and open a tool.</noscript>
+  </main>
+  <script>
+    const statusMessage = document.getElementById('launch-status');
+    const tools = document.getElementById('tools');
+    const signOut = document.getElementById('sign-out');
+
+    async function init() {
+      const client = window.supabase.createClient(
+        'https://ozcfpvwgvpclvagefhnk.supabase.co',
+        'sb_publishable_DWOx7lVVcDUtrlFGjQEgbQ_uHhUistO',
+      );
+      const { data: { session }, error } = await client.auth.getSession();
+      if (error) throw error;
+      if (!session) {
+        location.replace('login.html');
+        return;
+      }
+      tools.hidden = false;
+      signOut.hidden = false;
+      statusMessage.textContent = '';
+      statusMessage.hidden = true;
+
+      client.auth.onAuthStateChange(event => {
+        if (event === 'SIGNED_OUT') location.replace('login.html');
+      });
+      signOut.onclick = async () => {
+        signOut.disabled = true;
+        const { error } = await client.auth.signOut();
+        if (!error) {
+          location.replace('login.html');
+          return;
+        }
+        statusMessage.textContent = 'Could not sign out. Try again.';
+        statusMessage.hidden = false;
+        signOut.disabled = false;
+      };
+    }
+
+    init().catch(() => {
+      statusMessage.textContent = 'Could not check your sign-in. Reload to try again.';
+    });
+  </script>
+</body>
+</html>
