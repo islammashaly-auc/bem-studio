@@ -2372,6 +2372,8 @@
     background:var(--overlay-backdrop); align-items:center; justify-content:center;
   }
   .adv-modal.show { display:flex; }
+  #ifc3d-modal { border:0; padding:0; background:transparent; color:var(--text); }
+  #ifc3d-modal::backdrop { background:var(--overlay-backdrop); }
   .adv-box {
     background:var(--surface); border:1px solid var(--border2); border-radius:10px;
     padding:20px 22px; width:min(560px, calc(100vw - 32px));
@@ -4028,11 +4030,11 @@
       </div>
     </div>
   <input type="file" id="file-load-ifc" accept=".ifc" style="display:none" onchange="onIFCFileSelected3D(event)">
-  <div class="adv-modal" id="ifc3d-modal">
+  <dialog id="ifc3d-modal" aria-labelledby="ifc3d-title" oncancel="event.preventDefault();closeIFC3DModal()">
     <div class="adv-box" style="width:min(480px, calc(100vw - 32px));">
       <div class="adv-hdr">
-        <span>Import IFC — Walls + Zones</span>
-        <button onclick="closeIFC3DModal()">×</button>
+        <span id="ifc3d-title">Import IFC — Walls + Zones</span>
+        <button type="button" aria-label="Close IFC import" onclick="closeIFC3DModal()">×</button>
       </div>
       <div style="font-family:'Space Mono',monospace;font-size:var(--fs-caption);color:var(--dim);margin-bottom:10px;line-height:1.5;">
         Walls are traced into enclosed zones the same way the wall-drawing
@@ -4046,11 +4048,11 @@
         <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="ifc3d-mode" value="replace">Replace current model</label>
       </div>
       <div class="adv-actions">
-        <button class="adv-btn" onclick="closeIFC3DModal()">Cancel</button>
+        <button class="adv-btn" autofocus onclick="closeIFC3DModal()">Cancel</button>
         <button class="adv-btn ok" onclick="commitIFC3DImport()">Import</button>
       </div>
     </div>
-  </div>
+  </dialog>
 
   <!-- ── MAIN AREA ── -->
   <div class="main-area" id="main-area">
@@ -20823,7 +20825,8 @@ function onIFCFileSelected3D(e) {
         return;
       }
       populateIFC3DStoreyList();
-      document.getElementById('ifc3d-modal')?.classList.add('show');
+      const dialog = document.getElementById('ifc3d-modal');
+      if (!dialog.open) dialog.showModal();
     } catch (err) {
       flashHint('⚠ IFC parse error: ' + err.message, 'warning');
       console.error('[IFC3D] parse error', err);
@@ -20834,7 +20837,7 @@ function onIFCFileSelected3D(e) {
 }
 
 function closeIFC3DModal() {
-  document.getElementById('ifc3d-modal')?.classList.remove('show');
+  document.getElementById('ifc3d-modal').close();
   _ifc3DParsed = null;
 }
 
@@ -32909,6 +32912,13 @@ function onKeyDown(e) {
     return;
   }
   const key = e.key.toLowerCase();
+  if (document.getElementById('ifc3d-modal').open) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeIFC3DModal();
+    }
+    return;
+  }
   if (e.key === 'Escape' && document.getElementById('clear-all-confirm-modal')?.classList.contains('show')) {
     e.preventDefault();
     closeClearAllConfirmation();
