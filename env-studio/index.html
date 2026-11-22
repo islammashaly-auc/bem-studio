@@ -2373,12 +2373,11 @@
   }
   .adv-modal.show { display:flex; }
   #ifc3d-modal {
-    position:fixed; inset:0; margin:auto;
-    width:fit-content; height:fit-content;
-    max-width:calc(100% - 32px); max-height:calc(100% - 32px);
-    border:0; padding:0; background:transparent; color:var(--text); overflow:auto;
+    position:fixed; inset:0; z-index:10000; display:grid; place-items:center;
+    padding:16px; background:var(--overlay-backdrop); color:var(--text);
   }
-  #ifc3d-modal::backdrop { background:var(--overlay-backdrop); }
+  #ifc3d-modal[hidden] { display:none; }
+  #ifc3d-modal .adv-box { max-height:100%; overflow:auto; }
   .adv-box {
     background:var(--surface); border:1px solid var(--border2); border-radius:10px;
     padding:20px 22px; width:min(560px, calc(100vw - 32px));
@@ -4035,7 +4034,7 @@
       </div>
     </div>
   <input type="file" id="file-load-ifc" accept=".ifc" style="display:none" onchange="onIFCFileSelected3D(event)">
-  <dialog id="ifc3d-modal" aria-labelledby="ifc3d-title" oncancel="event.preventDefault();closeIFC3DModal()">
+  <div id="ifc3d-modal" role="dialog" aria-modal="true" aria-labelledby="ifc3d-title" hidden>
     <div class="adv-box" style="width:min(480px, calc(100vw - 32px));">
       <div class="adv-hdr">
         <span id="ifc3d-title">Import IFC — Walls + Zones</span>
@@ -4053,11 +4052,11 @@
         <label style="display:flex;align-items:center;gap:6px;"><input type="radio" name="ifc3d-mode" value="replace">Replace current model</label>
       </div>
       <div class="adv-actions">
-        <button class="adv-btn" autofocus onclick="closeIFC3DModal()">Cancel</button>
+        <button class="adv-btn" id="ifc3d-cancel" onclick="closeIFC3DModal()">Cancel</button>
         <button class="adv-btn ok" onclick="commitIFC3DImport()">Import</button>
       </div>
     </div>
-  </dialog>
+  </div>
 
   <!-- ── MAIN AREA ── -->
   <div class="main-area" id="main-area">
@@ -20817,6 +20816,19 @@ function imgCtxAction(action) {
 // ══════════════════════════════════════════════════════════════
 
 let _ifc3DParsed = null;
+let _ifc3DBackground = [];
+
+function openIFC3DModal() {
+  const modal = document.getElementById('ifc3d-modal');
+  if (!modal.hidden) return;
+  document.body.append(modal);
+  _ifc3DBackground = [...document.body.children].filter(element =>
+    element instanceof HTMLElement && element !== modal && !element.inert &&
+    !['SCRIPT', 'STYLE', 'LINK'].includes(element.tagName));
+  for (const element of _ifc3DBackground) element.inert = true;
+  modal.hidden = false;
+  document.getElementById('ifc3d-cancel').focus();
+}
 
 function onIFCFileSelected3D(e) {
   const file = e.target.files && e.target.files[0];
@@ -20830,8 +20842,7 @@ function onIFCFileSelected3D(e) {
         return;
       }
       populateIFC3DStoreyList();
-      const dialog = document.getElementById('ifc3d-modal');
-      if (!dialog.open) dialog.showModal();
+      openIFC3DModal();
     } catch (err) {
       flashHint('⚠ IFC parse error: ' + err.message, 'warning');
       console.error('[IFC3D] parse error', err);
@@ -20842,7 +20853,10 @@ function onIFCFileSelected3D(e) {
 }
 
 function closeIFC3DModal() {
-  document.getElementById('ifc3d-modal').close();
+  document.getElementById('ifc3d-modal').hidden = true;
+  for (const element of _ifc3DBackground) element.inert = false;
+  _ifc3DBackground = [];
+  document.getElementById('menu-file')?.focus();
   _ifc3DParsed = null;
 }
 
@@ -32917,10 +32931,19 @@ function onKeyDown(e) {
     return;
   }
   const key = e.key.toLowerCase();
-  if (document.getElementById('ifc3d-modal').open) {
+  const ifcModal = document.getElementById('ifc3d-modal');
+  if (!ifcModal.hidden) {
     if (e.key === 'Escape') {
       e.preventDefault();
       closeIFC3DModal();
+    }
+    if (e.key === 'Tab') {
+      const controls = [...ifcModal.querySelectorAll('button, input')].filter(control => !control.disabled);
+      const edge = e.shiftKey ? controls[0] : controls.at(-1);
+      if (document.activeElement === edge) {
+        e.preventDefault();
+        (e.shiftKey ? controls.at(-1) : controls[0]).focus();
+      }
     }
     return;
   }
