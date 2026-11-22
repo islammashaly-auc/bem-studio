@@ -2372,7 +2372,12 @@
     background:var(--overlay-backdrop); align-items:center; justify-content:center;
   }
   .adv-modal.show { display:flex; }
-  #ifc3d-modal { border:0; padding:0; background:transparent; color:var(--text); }
+  #ifc3d-modal {
+    position:fixed; inset:0; margin:auto;
+    width:fit-content; height:fit-content;
+    max-width:calc(100% - 32px); max-height:calc(100% - 32px);
+    border:0; padding:0; background:transparent; color:var(--text); overflow:auto;
+  }
   #ifc3d-modal::backdrop { background:var(--overlay-backdrop); }
   .adv-box {
     background:var(--surface); border:1px solid var(--border2); border-radius:10px;
